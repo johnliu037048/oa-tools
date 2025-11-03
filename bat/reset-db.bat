@@ -1,5 +1,11 @@
 @echo off
 chcp 65001 >nul
+setlocal enabledelayedexpansion
+
+REM 初始化命令路径（解决ARM架构问题）
+call "%~dp0_common.bat" :init_commands
+if errorlevel 1 exit /b 1
+
 echo ========================================
 echo        数据库重置脚本
 echo ========================================
@@ -15,7 +21,7 @@ if not exist "server\core\database\oa.db" (
 echo 正在检查依赖...
 if not exist "node_modules" (
     echo ⚠️  依赖未安装，正在安装...
-    npm install
+    "%NPM_CMD%" install
     if %errorlevel% neq 0 (
         echo ❌ 依赖安装失败
         pause
@@ -27,7 +33,7 @@ echo 正在检查服务器依赖...
 if not exist "server\node_modules" (
     echo ⚠️  服务器依赖未安装，正在安装...
     cd server
-    npm install
+    "%NPM_CMD%" install
     cd ..
     if %errorlevel% neq 0 (
         echo ❌ 服务器依赖安装失败
@@ -53,7 +59,7 @@ echo ✓ 数据库文件已删除
 
 echo.
 echo 正在重新初始化数据库...
-node server\core\database\system-init.js
+"%NODE_CMD%" server\core\database\system-init.js
 if %errorlevel% neq 0 (
     echo ❌ 数据库初始化失败
     pause
