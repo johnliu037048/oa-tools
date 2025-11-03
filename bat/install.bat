@@ -1,4 +1,15 @@
 @echo off
+setlocal enabledelayedexpansion
+
+rem 检测并修复环境（ARM Windows兼容性）
+call "%~dp0check-env.bat" 2>nul
+if %errorlevel% neq 0 (
+    echo.
+    echo ⚠️  环境检测失败，请检查Node.js安装
+    pause
+    exit /b 1
+)
+
 echo ========================================
 echo        安装项目依赖
 echo ========================================

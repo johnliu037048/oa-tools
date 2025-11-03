@@ -1,4 +1,15 @@
 @echo off
+setlocal enabledelayedexpansion
+
+rem 检测并修复环境（ARM Windows兼容性）
+call "%~dp0check-env.bat" 2>nul
+if %errorlevel% neq 0 (
+    echo.
+    echo ⚠️  环境检测失败，请检查Node.js安装
+    pause
+    exit /b 1
+)
+
 :menu
 cls
 echo ========================================
@@ -68,7 +79,8 @@ goto menu
 :stop
 echo.
 echo 正在停止服务...
-taskkill /f /im node.js 2>nul || echo 没有运行的Node.js进程
+rem ARM Windows兼容：同时尝试多种进程名称
+taskkill /f /im node.exe 2>nul || taskkill /f /im node.js 2>nul || echo 没有运行的Node.js进程
 echo 服务已停止
 pause
 goto menu
