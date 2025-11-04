@@ -29,8 +29,8 @@
           v-loading="loading"
           :default-active="activeMenu"
           class="sidebar-menu"
-          router
           :collapse="false"
+          @select="handleMenuSelect"
         >
           <template v-for="item in menuTree" :key="item.id">
             <el-sub-menu v-if="item.children && item.children.length > 0" :index="item.path">
@@ -65,14 +65,69 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { getMenuTree } from "@/api/menu";
 import * as Icons from '@element-plus/icons-vue';
 
 const route = useRoute();
+const router = useRouter();
 const activeMenu = computed(() => route.path);
 const menuTree = ref([]);
 const loading = ref(true);
+
+// 路由跳转状态管理，防止并发跳转
+let isNavigating = false;
+let lastNavigateTime = 0;
+const NAVIGATE_THROTTLE = 300; // 300ms 节流
+
+// 处理菜单选择事件，防止重复点击导致页面刷新
+const handleMenuSelect = async (index) => {
+  if (!index) return;
+  
+  const now = Date.now();
+  
+  // 节流：如果距离上次导航时间太短，忽略本次点击
+  if (now - lastNavigateTime < NAVIGATE_THROTTLE) {
+    return;
+  }
+  
+  // 如果正在导航中，忽略新的点击
+  if (isNavigating) {
+    return;
+  }
+  
+  // 确保路径以 / 开头，处理根路径
+  const targetPath = index.startsWith('/') ? index : '/' + index;
+  const currentPath = route.path;
+  
+  // 如果点击的是当前路径，不执行跳转，防止页面刷新
+  if (targetPath === currentPath) {
+    return;
+  }
+  
+  // 设置导航状态和时间戳，防止重复点击
+  isNavigating = true;
+  lastNavigateTime = now;
+  
+  try {
+    // 使用 replace 而不是 push，避免在历史记录中堆积相同路由
+    await router.replace(targetPath);
+  } catch (err) {
+    // 忽略所有导航相关的错误，这些是 Vue Router 的正常行为
+    // NavigationDuplicated: 重复导航
+    // NavigationCancelled: 导航被取消
+    // NavigationAborted: 导航被中止
+    const ignorableErrors = ['NavigationDuplicated', 'NavigationCancelled', 'NavigationAborted'];
+    if (!ignorableErrors.includes(err?.name)) {
+      console.error('路由跳转失败:', err);
+    }
+  } finally {
+    // 延迟重置导航状态，确保导航完成
+    setTimeout(() => {
+      isNavigating = false;
+    }, 50);
+  }
+};
 
 // 动态获取图标组件
 const getIconComponent = (iconName) => {

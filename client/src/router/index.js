@@ -154,18 +154,31 @@ const router = createRouter({
 })
 
 // 添加路由错误处理，防止组件加载失败导致页面刷新
+let chunkLoadErrorCount = 0;
+const MAX_CHUNK_ERROR_RETRY = 3;
+
 router.onError((error) => {
   console.error('路由加载错误:', error)
   const pattern = /Loading chunk (\w)+ failed/g
-  const isChunkLoadError = error.message && error.message.match(pattern)
+  const errorMessage = error?.message || error?.toString() || ''
+  const isChunkLoadError = errorMessage.match(pattern)
   
   if (isChunkLoadError) {
-    // 如果是 chunk 加载失败，尝试重新加载路由（仅在这种情况下刷新）
-    console.warn('Chunk 加载失败，重新加载页面')
-    setTimeout(() => {
-      window.location.reload()
-    }, 100)
+    chunkLoadErrorCount++;
+    // 只有在多次失败后才刷新页面
+    if (chunkLoadErrorCount >= MAX_CHUNK_ERROR_RETRY) {
+      console.warn('Chunk 加载多次失败，重新加载页面')
+      chunkLoadErrorCount = 0; // 重置计数器
+      setTimeout(() => {
+        window.location.reload()
+      }, 300)
+    } else {
+      console.warn(`Chunk 加载失败 (${chunkLoadErrorCount}/${MAX_CHUNK_ERROR_RETRY})，尝试恢复...`)
+      // 不刷新，让 Vue Router 自己处理
+    }
   } else {
+    // 重置计数器，因为不是 chunk 错误
+    chunkLoadErrorCount = 0;
     // 其他错误不刷新，只记录日志
     console.error('路由错误详情:', error)
   }
@@ -173,7 +186,8 @@ router.onError((error) => {
 
 // 添加路由守卫，处理导航错误
 router.beforeEach((to, from, next) => {
-  // 确保路由正常导航
+  // 允许所有导航，让 Vue Router 自己处理重复导航
+  // Vue Router 已经内置了重复导航的处理机制
   next()
 })
 
