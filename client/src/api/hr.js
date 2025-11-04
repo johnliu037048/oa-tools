@@ -208,3 +208,76 @@ export const getSalaryReport = (params) => {
     params
   })
 }
+
+// ==================== 人才库管理 ====================
+
+// 获取人才库列表
+export const getTalents = (params) => {
+  return request({
+    url: '/hr/talent-pool/talents',
+    method: 'get',
+    params
+  })
+}
+
+// 创建人才（手动添加）
+export const createTalent = (data) => {
+  return request({
+    url: '/hr/talent-pool/talents',
+    method: 'post',
+    data
+  })
+}
+
+// 文件上传并解析
+export const uploadTalentFile = (formData) => {
+  return request({
+    url: '/hr/talent-pool/talents/upload',
+    method: 'post',
+    data: formData
+  })
+}
+
+// 爬取招聘网站
+export const crawlJobSite = (data) => {
+  return request({
+    url: '/hr/talent-pool/talents/crawl',
+    method: 'post',
+    data
+  })
+}
+
+// 更新人才信息
+export const updateTalent = (id, data) => {
+  return request({
+    url: `/hr/talent-pool/talents/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+// 删除人才
+export const deleteTalent = (id) => {
+  return request({
+    url: `/hr/talent-pool/talents/${id}`,
+    method: 'delete'
+  })
+}
+
+// 关联招聘职位
+export const linkToRecruitment = (id, data) => {
+  return request({
+    url: `/hr/talent-pool/talents/${id}/link-recruitment`,
+    method: 'post',
+    data
+  })
+}
+
+// 转为入职申请
+export const convertToOnboarding = (id, data) => {
+  return request({
+    url: `/hr/talent-pool/talents/${id}/convert-to-onboarding`,
+    method: 'post',
+    data
+  })
+}

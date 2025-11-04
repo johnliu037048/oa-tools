@@ -91,7 +91,14 @@ exports.createCostCenter = [
       [name, code, cost_type || null, description, parent_id, status],
       function(err) {
         if (err) {
-          return res.status(500).json({ message: '创建失败' });
+          console.error('创建成本中心失败:', err);
+          // 检查是否是唯一性约束冲突
+          if (err.message && err.message.includes('UNIQUE constraint failed')) {
+            return res.status(400).json({ 
+              message: `成本中心代码"${code}"已存在，请使用其他代码` 
+            });
+          }
+          return res.status(500).json({ message: '创建失败', error: err.message });
         }
 
         res.json({ message: '创建成功', id: this.lastID });

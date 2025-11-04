@@ -61,15 +61,29 @@ goto menu
 :start
 echo.
 echo 正在启动系统...
+echo [调试] 调用启动脚本...
 call bat\start.bat
+set start_error=%errorlevel%
+if %start_error% neq 0 (
+    echo.
+    echo ========================================
+    echo 启动脚本执行失败，错误代码: %start_error%
+    echo ========================================
+    echo.
+    echo 请检查上面的错误信息
+)
 pause
 goto menu
 
 :stop
 echo.
 echo 正在停止服务...
-taskkill /f /im node.js 2>nul || echo 没有运行的Node.js进程
-echo 服务已停止
+taskkill /f /im node.exe 2>nul
+if errorlevel 1 (
+    echo 没有运行的Node.js进程
+) else (
+    echo ✓ 服务已停止
+)
 pause
 goto menu
 

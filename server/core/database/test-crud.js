@@ -429,16 +429,54 @@ const testHRModule = async () => {
     const salaryList = salaries.data?.data || salaries.data || [];
     log.success(`查询薪酬记录成功: 共${Array.isArray(salaryList) ? salaryList.length : 0}条记录`);
     
+    // 使用当前年份和月份+1（确保不会与现有数据冲突）
+    const now = new Date();
+    const testYear = now.getFullYear();
+    const testMonth = 13; // 使用13月（不存在的月份）确保唯一性，或者使用当前月份+12
+    
+    // 先尝试删除可能存在的测试记录（如果有）
+    try {
+      const existingRecords = await api.get(`/hr/salary/records?user_id=2&year=${testYear}&month=${testMonth}`);
+      const existing = existingRecords.data?.data || existingRecords.data || [];
+      if (Array.isArray(existing) && existing.length > 0) {
+        // 如果存在测试记录，先删除
+        for (const record of existing) {
+          if (record.id) {
+            await api.delete(`/hr/salary/records/${record.id}`);
+          }
+        }
+      }
+    } catch (e) {
+      // 忽略删除错误，继续创建
+    }
+    
     const newSalary = await api.post('/hr/salary/records', {
       user_id: 2,
-      year: 2025,
-      month: 1,
+      year: testYear,
+      month: testMonth,
       base_salary: 20000,
       bonus: 5000,
       allowance: 2000,
-      deduction: 1000
+      deduction: 1000,
+      notes: '测试记录'
     });
-    const salaryId = newSalary.data?.data?.id || newSalary.data?.id || newSalary.data;
+    
+    // 处理不同的响应格式
+    let salaryId = null;
+    if (newSalary.data) {
+      if (newSalary.data.data && newSalary.data.data.id) {
+        salaryId = newSalary.data.data.id;
+      } else if (newSalary.data.id) {
+        salaryId = newSalary.data.id;
+      } else if (typeof newSalary.data === 'number') {
+        salaryId = newSalary.data;
+      }
+    }
+    
+    if (!salaryId) {
+      throw new Error('创建薪酬记录失败：未返回有效的ID');
+    }
+    
     log.success(`创建薪酬记录成功: ID=${salaryId}`);
     
     await api.delete(`/hr/salary/records/${salaryId}`);
@@ -446,8 +484,12 @@ const testHRModule = async () => {
   } catch (error) {
     if (error.response) {
       log.error(`薪酬管理测试失败: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`);
+      if (error.response.data) {
+        console.error('详细错误信息:', JSON.stringify(error.response.data, null, 2));
+      }
     } else {
       log.error(`薪酬管理测试失败: ${error.message}`);
+      console.error('错误堆栈:', error.stack);
     }
   }
 };
@@ -671,35 +713,99 @@ const testFinanceModule = async () => {
     const costCenterList = costCenters.data?.data || costCenters.data || [];
     log.success(`查询成本中心成功: 共${Array.isArray(costCenterList) ? costCenterList.length : 0}条记录`);
     
+    // 使用更唯一的代码，包含随机数确保唯一性
     const timestamp = Date.now();
-    const costCenterCode = `CC-TEST-${timestamp}`;
+    const random = Math.floor(Math.random() * 10000);
+    const costCenterCode = `CC-TEST-${timestamp}-${random}`;
+    
+    // 先尝试删除可能存在的测试记录
+    try {
+      const existing = await api.get(`/finance/cost-accounting/cost-centers?keyword=${costCenterCode}`);
+      const existingList = existing.data?.data || existing.data || [];
+      if (Array.isArray(existingList) && existingList.length > 0) {
+        for (const center of existingList) {
+          if (center.id && (center.code === costCenterCode || center.cost_center_code === costCenterCode)) {
+            await api.delete(`/finance/cost-accounting/cost-centers/${center.id}`);
+          }
+        }
+      }
+    } catch (e) {
+      // 忽略删除错误，继续创建
+    }
     
     const newCostCenter = await api.post('/finance/cost-accounting/cost-centers', {
-      name: `测试成本中心_${timestamp}`,
+      name: `测试成本中心_${timestamp}_${random}`,
       code: costCenterCode,
       description: '测试成本中心描述',
-      parent_id: null,
+      parent_id: 0,
       status: 1
     });
-    const costCenterId = newCostCenter.data?.data?.id || newCostCenter.data?.id || newCostCenter.data;
+    
+    // 处理不同的响应格式
+    let costCenterId = null;
+    if (newCostCenter.data) {
+      if (newCostCenter.data.data && newCostCenter.data.data.id) {
+        costCenterId = newCostCenter.data.data.id;
+      } else if (newCostCenter.data.id) {
+        costCenterId = newCostCenter.data.id;
+      } else if (typeof newCostCenter.data === 'number') {
+        costCenterId = newCostCenter.data;
+      }
+    }
+    
+    if (!costCenterId) {
+      throw new Error('创建成本中心失败：未返回有效的ID');
+    }
+    
     log.success(`创建成本中心成功: ID=${costCenterId}`);
     
     await api.put(`/finance/cost-accounting/cost-centers/${costCenterId}`, {
-      name: `测试成本中心（已更新）_${timestamp}`,
+      name: `测试成本中心（已更新）_${timestamp}_${random}`,
       code: costCenterCode,
       description: '测试成本中心描述（已更新）',
-      parent_id: null,
+      parent_id: 0,
       status: 1
     });
     log.success('更新成本中心成功');
+    
+    // 删除成本中心前，先删除所有关联的成本分配记录
+    try {
+      // 获取所有成本分配记录（使用较大的limit确保获取所有记录）
+      const allocations = await api.get('/finance/cost-accounting/allocations?limit=1000');
+      const allocationList = allocations.data?.data || allocations.data || [];
+      if (Array.isArray(allocationList)) {
+        let deletedCount = 0;
+        for (const allocation of allocationList) {
+          // 如果成本分配使用了我们要删除的成本中心（作为来源或目标）
+          if (allocation.from_center === costCenterId || allocation.to_center === costCenterId) {
+            try {
+              await api.delete(`/finance/cost-accounting/allocations/${allocation.id}`);
+              deletedCount++;
+            } catch (e) {
+              // 忽略删除失败，继续尝试
+            }
+          }
+        }
+        if (deletedCount > 0) {
+          log.info(`已删除 ${deletedCount} 条关联的成本分配记录`);
+        }
+      }
+    } catch (e) {
+      // 如果查询成本分配失败，继续尝试删除成本中心
+      log.info('查询成本分配失败，继续删除成本中心...');
+    }
     
     await api.delete(`/finance/cost-accounting/cost-centers/${costCenterId}`);
     log.success('删除成本中心成功');
   } catch (error) {
     if (error.response) {
       log.error(`成本核算测试失败: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`);
+      if (error.response.data) {
+        console.error('详细错误信息:', JSON.stringify(error.response.data, null, 2));
+      }
     } else {
       log.error(`成本核算测试失败: ${error.message}`);
+      console.error('错误堆栈:', error.stack);
     }
   }
   

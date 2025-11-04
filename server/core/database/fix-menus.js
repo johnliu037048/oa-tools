@@ -17,11 +17,12 @@ console.log('');
 const menus = [
   // HR管理子菜单
   { id: 8, name: '招聘管理', path: '/hr/recruitment', component: 'hr/Recruitment', icon: 'UserPlus', parent_id: 7, level: 2, sort_order: 1, type: 1, status: 1 },
-  { id: 9, name: '入职离职管理', path: '/hr/onboarding', component: 'hr/Onboarding', icon: 'UserCheck', parent_id: 7, level: 2, sort_order: 2, type: 1, status: 1 },
-  { id: 10, name: '考勤、请假', path: '/hr/attendance', component: 'hr/Attendance', icon: 'Clock', parent_id: 7, level: 2, sort_order: 3, type: 1, status: 1 },
-  { id: 11, name: '薪酬福利管理', path: '/hr/salary', component: 'hr/Salary', icon: 'CurrencyDollar', parent_id: 7, level: 2, sort_order: 4, type: 1, status: 1 },
-  { id: 12, name: '档案管理', path: '/hr/employee', component: 'hr/Employee', icon: 'DocumentText', parent_id: 7, level: 2, sort_order: 5, type: 1, status: 1 },
-  { id: 13, name: '报表分析', path: '/hr/reports', component: 'hr/Report', icon: 'ChartBar', parent_id: 7, level: 2, sort_order: 6, type: 1, status: 1 },
+  { id: 14, name: '人才库管理', path: '/hr/talent-pool', component: 'hr/TalentPool', icon: 'Briefcase', parent_id: 7, level: 2, sort_order: 2, type: 1, status: 1 },
+  { id: 9, name: '入职离职管理', path: '/hr/onboarding', component: 'hr/Onboarding', icon: 'UserCheck', parent_id: 7, level: 2, sort_order: 3, type: 1, status: 1 },
+  { id: 10, name: '考勤、请假', path: '/hr/attendance', component: 'hr/Attendance', icon: 'Clock', parent_id: 7, level: 2, sort_order: 4, type: 1, status: 1 },
+  { id: 11, name: '薪酬福利管理', path: '/hr/salary', component: 'hr/Salary', icon: 'CurrencyDollar', parent_id: 7, level: 2, sort_order: 5, type: 1, status: 1 },
+  { id: 12, name: '档案管理', path: '/hr/employee', component: 'hr/Employee', icon: 'DocumentText', parent_id: 7, level: 2, sort_order: 6, type: 1, status: 1 },
+  { id: 13, name: '报表分析', path: '/hr/reports', component: 'hr/Report', icon: 'ChartBar', parent_id: 7, level: 2, sort_order: 7, type: 1, status: 1 },
   // 系统管理子菜单 - 字典管理
   { id: 26, name: '字典管理', path: '/system/dictionary', component: 'system/Dictionary', icon: 'Notebook', parent_id: 2, level: 2, sort_order: 5, type: 1, status: 1 },
 ];

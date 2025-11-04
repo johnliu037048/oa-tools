@@ -144,6 +144,34 @@ const createHRTables = () => {
     )
   `);
 
+  // 人才库表
+  db.run(`
+    CREATE TABLE IF NOT EXISTS talent_pool (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name VARCHAR(50) NOT NULL,
+      email VARCHAR(100),
+      phone VARCHAR(20),
+      gender VARCHAR(10),
+      age INTEGER,
+      education VARCHAR(50),
+      experience_years INTEGER,
+      current_position VARCHAR(100),
+      current_company VARCHAR(100),
+      expected_salary VARCHAR(50),
+      skills TEXT,
+      work_experience TEXT,
+      education_background TEXT,
+      resume_file VARCHAR(255),
+      source VARCHAR(50) DEFAULT 'manual',
+      source_url VARCHAR(500),
+      recruitment_position_id INTEGER,
+      status INTEGER DEFAULT 1,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // 所有表创建完成
   console.log('HR模块数据库表创建完成');
   // 注意：示例数据由 system-init.js 统一插入，这里只创建表结构

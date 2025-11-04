@@ -97,7 +97,14 @@ exports.createSalaryRecord = [
       [user_id, year, month, base_salary, bonus || 0, allowance || 0, deduction || 0, notes],
       function(err) {
         if (err) {
-          return res.status(500).json({ message: '创建失败' });
+          console.error('创建薪酬记录失败:', err);
+          // 检查是否是唯一性约束冲突
+          if (err.message && err.message.includes('UNIQUE constraint failed')) {
+            return res.status(400).json({ 
+              message: `该用户${year}年${month}月的薪酬记录已存在，请先删除或更新现有记录` 
+            });
+          }
+          return res.status(500).json({ message: '创建失败', error: err.message });
         }
         res.json({ message: '创建成功', id: this.lastID });
       }

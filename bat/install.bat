@@ -1,12 +1,18 @@
 @echo off
 chcp 65001 >nul
+setlocal enabledelayedexpansion
+
+REM 初始化命令路径（解决ARM架构问题）
+call "%~dp0_common.bat" :init_commands
+if errorlevel 1 exit /b 1
+
 echo ========================================
 echo        安装项目依赖
 echo ========================================
 echo.
 
 echo 正在安装根目录依赖...
-npm install
+"%NPM_CMD%" install
 if %errorlevel% neq 0 (
     echo ❌ 根目录依赖安装失败
     pause
@@ -16,7 +22,7 @@ if %errorlevel% neq 0 (
 echo.
 echo 正在安装服务器依赖...
 cd server
-npm install
+"%NPM_CMD%" install
 if %errorlevel% neq 0 (
     echo ❌ 服务器依赖安装失败
     cd ..
@@ -28,7 +34,7 @@ cd ..
 echo.
 echo 正在安装客户端依赖...
 cd client
-npm install
+"%NPM_CMD%" install
 if %errorlevel% neq 0 (
     echo ❌ 客户端依赖安装失败
     cd ..
