@@ -120,6 +120,7 @@ const insertSystemSampleData = () => {
                 { id: 1, name: '首页', path: '/', component: 'Dashboard', icon: 'House', parent_id: 0, level: 1, sort_order: 1, type: 1, status: 1 },
                 { id: 7, name: 'HR管理', path: '/hr', component: 'Layout', icon: 'User', parent_id: 0, level: 1, sort_order: 3, type: 1, status: 1 },
                 { id: 15, name: '财务管理', path: '/finance', component: 'Layout', icon: 'Money', parent_id: 0, level: 1, sort_order: 4, type: 1, status: 1 },
+                { id: 30, name: '工具管理', path: '/tools', component: 'Layout', icon: 'Tools', parent_id: 0, level: 1, sort_order: 5, type: 1, status: 1 },
                 // 系统管理子菜单 - 字典管理
                 { id: 26, name: '字典管理', path: '/system/dictionary', component: 'system/Dictionary', icon: 'Notebook', parent_id: 2, level: 2, sort_order: 5, type: 1, status: 1 },
                 // HR管理子菜单
@@ -140,7 +141,14 @@ const insertSystemSampleData = () => {
                 { id: 22, name: '预算管理', path: '/finance/budgeting', component: 'finance/Budgeting', icon: 'DataAnalysis', parent_id: 15, level: 2, sort_order: 7, type: 1, status: 1 },
                 { id: 24, name: '税务管理', path: '/finance/tax-management', component: 'finance/TaxManagement', icon: 'Document', parent_id: 15, level: 2, sort_order: 8, type: 1, status: 1 },
                 { id: 25, name: '费用管理', path: '/finance/expense-management', component: 'finance/ExpenseManagement', icon: 'Document', parent_id: 15, level: 2, sort_order: 9, type: 1, status: 1 },
-                { id: 23, name: '报表与分析', path: '/finance/financial-reporting', component: 'finance/FinancialReporting', icon: 'Document', parent_id: 15, level: 2, sort_order: 10, type: 1, status: 1 }
+                { id: 23, name: '报表与分析', path: '/finance/financial-reporting', component: 'finance/FinancialReporting', icon: 'Document', parent_id: 15, level: 2, sort_order: 10, type: 1, status: 1 },
+                // 工具子菜单
+                { id: 31, name: 'HTTP调试', path: '/tools/http-debug', component: 'tools/HttpDebug', icon: 'Document', parent_id: 30, level: 2, sort_order: 1, type: 1, status: 1 },
+                { id: 32, name: 'JSON格式化', path: '/tools/json-formatter', component: 'tools/JsonFormatter', icon: 'Document', parent_id: 30, level: 2, sort_order: 2, type: 1, status: 1 },
+                { id: 33, name: '文档转换', path: '/tools/convert-docs', component: 'tools/ConvertDocuments', icon: 'Document', parent_id: 30, level: 2, sort_order: 3, type: 1, status: 1 },
+                { id: 34, name: '图片/视频转换', path: '/tools/media-converter', component: 'tools/MediaConverter', icon: 'Document', parent_id: 30, level: 2, sort_order: 4, type: 1, status: 1 },
+                { id: 35, name: '绘图', path: '/tools/drawing', component: 'tools/Drawing', icon: 'Document', parent_id: 30, level: 2, sort_order: 5, type: 1, status: 1 },
+                { id: 36, name: '本地文件检索', path: '/tools/local-file-search', component: 'tools/LocalFileSearch', icon: 'Document', parent_id: 30, level: 2, sort_order: 6, type: 1, status: 1 }
               ];
               
               let menuCount = 0;

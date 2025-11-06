@@ -149,6 +149,43 @@ const routes = [
         name: 'FinancialReporting',
         component: () => import('../views/finance/FinancialReporting.vue'),
         meta: { title: '报表与分析' }
+      },
+      // Tools 模块路由
+      {
+        path: 'tools/http-debug',
+        name: 'HttpDebug',
+        component: () => import('../views/tools/HttpDebug.vue'),
+        meta: { title: 'HTTP调试' }
+      },
+      {
+        path: 'tools/json-formatter',
+        name: 'JsonFormatter',
+        component: () => import('../views/tools/JsonFormatter.vue'),
+        meta: { title: 'JSON格式化' }
+      },
+      {
+        path: 'tools/convert-docs',
+        name: 'ConvertDocuments',
+        component: () => import('../views/tools/ConvertDocuments.vue'),
+        meta: { title: '文档转换' }
+      },
+      {
+        path: 'tools/media-converter',
+        name: 'MediaConverter',
+        component: () => import('../views/tools/MediaConverter.vue'),
+        meta: { title: '图片/视频转换' }
+      },
+      {
+        path: 'tools/drawing',
+        name: 'Drawing',
+        component: () => import('../views/tools/Drawing.vue'),
+        meta: { title: '绘图' }
+      },
+      {
+        path: 'tools/local-file-search',
+        name: 'LocalFileSearch',
+        component: () => import('../views/tools/LocalFileSearch.vue'),
+        meta: { title: '本地文件检索' }
       }
     ]
   }

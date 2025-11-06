@@ -25,6 +25,13 @@ const menus = [
   { id: 13, name: '报表分析', path: '/hr/reports', component: 'hr/Report', icon: 'ChartBar', parent_id: 7, level: 2, sort_order: 7, type: 1, status: 1 },
   // 系统管理子菜单 - 字典管理
   { id: 26, name: '字典管理', path: '/system/dictionary', component: 'system/Dictionary', icon: 'Notebook', parent_id: 2, level: 2, sort_order: 5, type: 1, status: 1 },
+  // 工具子菜单（用于快速修复/添加）
+  { id: 31, name: 'HTTP调试', path: '/tools/http-debug', component: 'tools/HttpDebug', icon: 'Document', parent_id: 30, level: 2, sort_order: 1, type: 1, status: 1 },
+  { id: 32, name: 'JSON格式化', path: '/tools/json-formatter', component: 'tools/JsonFormatter', icon: 'Document', parent_id: 30, level: 2, sort_order: 2, type: 1, status: 1 },
+  { id: 33, name: '文档转换', path: '/tools/convert-docs', component: 'tools/ConvertDocuments', icon: 'Document', parent_id: 30, level: 2, sort_order: 3, type: 1, status: 1 },
+  { id: 34, name: '图片/视频转换', path: '/tools/media-converter', component: 'tools/MediaConverter', icon: 'Document', parent_id: 30, level: 2, sort_order: 4, type: 1, status: 1 },
+  { id: 35, name: '绘图', path: '/tools/drawing', component: 'tools/Drawing', icon: 'Document', parent_id: 30, level: 2, sort_order: 5, type: 1, status: 1 },
+  { id: 36, name: '本地文件检索', path: '/tools/local-file-search', component: 'tools/LocalFileSearch', icon: 'Document', parent_id: 30, level: 2, sort_order: 6, type: 1, status: 1 },
 ];
 
 let completed = 0;
