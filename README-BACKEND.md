@@ -84,11 +84,12 @@ npm start
 
 ### 系统管理模块 (`modules/system`)
 
-- 组织管理
+- 组织管理（支持树形结构）
 - 岗位管理
 - 用户管理
 - 角色管理
-- 菜单管理
+- 菜单管理（支持树形结构，动态加载）
+- 字典管理（支持树形结构，字段配置）
 
 ### 人力资源模块 (`modules/hr`)
 
@@ -132,7 +133,8 @@ npm start
   - `/api/system/organizations` - 组织管理
   - `/api/system/positions` - 岗位管理
   - `/api/system/roles` - 角色管理
-  - `/api/system/menus` - 菜单管理
+  - `/api/system/menus` - 菜单管理（支持 `?tree=true` 返回树形结构）
+  - `/api/system/dictionaries` - 字典管理（支持 `?tree=true` 返回树形结构）
 - **HR 模块**: `/api/hr/*`
   - `/api/hr/recruitment/*` - 招聘管理
   - `/api/hr/onboarding/*` - 入职离职管理
@@ -165,12 +167,12 @@ npm start
 
 1. **自动初始化**（服务器启动时）：
 
-   - `db-connection.js` - 创建核心系统表（organizations, positions, users, menus, roles 等）并插入最小初始数据（如默认管理员账户）
+   - `db-connection.js` - 创建核心系统表（organizations, positions, users, menus, roles, dictionaries 等）并插入最小初始数据（如默认管理员账户）
    - `hr-tables.js` - 创建 HR 模块表（recruitment_positions, onboarding_applications, attendance_records 等）
    - `finance-tables.js` - 创建财务模块表（general_ledger_accounts, accounts_receivable, fixed_assets 等）
 
 2. **手动初始化**（需要时执行）：
-   - `system-init.js` - 插入完整的示例数据到所有表（系统、HR、财务模块）
+   - `system-init.js` - 插入完整的示例数据到所有表（系统、HR、财务模块），包括字典数据（46条）
 
 #### 初始化示例数据
 

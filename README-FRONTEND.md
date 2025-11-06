@@ -261,10 +261,25 @@ const formatCurrency = (amount) => {
 - ✅ 所有金额字段统一使用 `formatCurrency()` 函数格式化
 - ✅ 统一处理空值和零值，避免显示异常
 
+### 字典系统集成
+
+- ✅ 新增字典工具函数 `src/utils/dictionary.js`
+- ✅ 支持字典数据缓存，提高性能
+- ✅ 提供 `getDictionary()`、`getDictOptions()`、`getDictLabelSync()` 等工具函数
+- ✅ 财务模块所有类型字段已集成字典系统
+- ✅ 字典数据可在"系统管理 > 字典管理"中随时更新维护
+
+### 动态菜单加载
+
+- ✅ 菜单根据数据库配置动态加载
+- ✅ 支持动态图标配置（Element Plus Icons）
+- ✅ 菜单树形结构展示和管理
+
 ### API 路径更新
 
 - ✅ 系统管理模块 API 路径统一使用 `/api/system/*` 前缀
 - ✅ 所有前端 API 文件已更新为新的路径结构
+- ✅ 新增字典管理 API 接口
 
 ## 常见问题
 
