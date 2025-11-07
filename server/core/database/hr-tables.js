@@ -90,6 +90,20 @@ const createHRTables = () => {
     )
   `);
 
+  // 绩效管理表
+  db.run(`
+    CREATE TABLE IF NOT EXISTS performances (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER NOT NULL,
+      evaluation_date DATE NOT NULL,
+      score DECIMAL(5,2) NOT NULL,
+      comments TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(employee_id) REFERENCES users(id)
+    )
+  `);
+
   // 请假申请表
   db.run(`
     CREATE TABLE IF NOT EXISTS leave_applications (
@@ -141,6 +155,19 @@ const createHRTables = () => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(employee_id)
+    )
+  `);
+
+  // 绩效考核表
+  db.run(`
+    CREATE TABLE IF NOT EXISTS hr_performance (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER NOT NULL,
+      evaluation_date DATE NOT NULL,
+      score DECIMAL(5,2) NOT NULL,
+      comments TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 

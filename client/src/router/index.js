@@ -89,6 +89,12 @@ const routes = [
         component: () => import('../views/hr/TalentPool.vue'),
         meta: { title: '人才库管理' }
       },
+      {
+        path: 'hr/performance',
+        name: 'Performance',
+        component: () => import('../views/hr/Performance.vue'),
+        meta: { title: '绩效管理' }
+      },
       // 财务模块路由
       {
         path: 'finance/general-ledger',

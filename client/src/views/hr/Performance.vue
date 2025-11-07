@@ -1,0 +1,336 @@
+<template>
+  <div class="performance-container">
+    <el-card class="box-card">
+      <template #header>
+        <div class="card-header">
+          <span>绩效管理</span>
+          <el-button type="primary" @click="handleAdd">添加绩效记录</el-button>
+        </div>
+      </template>
+      
+      <el-table
+        v-loading="loading"
+        :data="performanceList"
+        style="width: 100%"
+      >
+        <el-table-column prop="employee_name" label="员工姓名" />
+        <el-table-column prop="evaluation_date" label="评估日期" width="180" />
+        <el-table-column prop="score" label="得分" width="100" />
+        <el-table-column prop="comments" label="评语" />
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
+            <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-table :data="performanceList" style="width: 100%" v-loading="loading">
+        <el-table-column prop="employee_name" label="员工姓名" />
+        <el-table-column prop="evaluation_date" label="评估日期" />
+        <el-table-column prop="score" label="得分">
+          <template #default="scope">
+            <el-tag :type="getScoreType(scope.row.score)">{{ scope.row.score }}分</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="comments" label="评语" show-overflow-tooltip />
+        <el-table-column label="操作" width="150">
+          <template #default="scope">
+            <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <el-dialog
+      :title="dialogTitle"
+      v-model="dialogVisible"
+      width="50%"
+      :before-close="handleClose"
+    >
+      <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
+        <el-form-item label="员工" prop="employee_id">
+          <el-select v-model="form.employee_id" placeholder="请选择员工">
+            <el-option
+              v-for="employee in employeeList"
+              :key="employee.id"
+              :label="employee.name"
+              :value="employee.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="评估日期" prop="evaluation_date">
+          <el-date-picker
+            v-model="form.evaluation_date"
+            type="date"
+            placeholder="选择评估日期"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+        <el-form-item label="得分" prop="score">
+          <el-input-number v-model="form.score" :min="0" :max="100" />
+        </el-form-item>
+        <el-form-item label="评语" prop="comments">
+          <el-input
+            v-model="form.comments"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入评语"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleSubmit">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { 
+  getEmployeeList, 
+  getPerformanceList, 
+  addPerformance, 
+  updatePerformance, 
+  deletePerformance 
+} from '@/api/hr'
+
+const loading = ref(false)
+const dialogVisible = ref(false)
+const dialogTitle = ref('添加绩效记录')
+const performanceList = ref([])
+const employeeList = ref([])
+const formRef = ref()
+const currentId = ref(null)
+
+const form = ref({
+  employee_id: '',
+  evaluation_date: '',
+  score: 0,
+  comments: ''
+})
+
+const rules = {
+  employee_id: [{ required: true, message: '请选择员工', trigger: 'change' }],
+  evaluation_date: [{ required: true, message: '请选择评估日期', trigger: 'change' }],
+  score: [{ required: true, message: '请输入得分', trigger: 'blur' }],
+  comments: [{ required: true, message: '请输入评语', trigger: 'blur' }]
+}
+
+// 获取绩效列表
+const fetchPerformanceList = async () => {
+  loading.value = true
+  try {
+    const { data } = await getPerformanceList()
+    performanceList.value = data
+  } catch (error) {
+    console.error('获取绩效列表失败:', error)
+    ElMessage.error('获取绩效列表失败')
+  }
+  loading.value = false
+}
+
+// 获取员工列表
+const fetchEmployeeList = async () => {
+  try {
+    const { data } = await getEmployeeList()
+    employeeList.value = data
+  } catch (error) {
+    console.error('获取员工列表失败:', error)
+    ElMessage.error('获取员工列表失败')
+  }
+}
+
+// 添加绩效记录
+const handleAdd = () => {
+  dialogTitle.value = '添加绩效记录'
+  dialogVisible.value = true
+  currentId.value = null
+  form.value = {
+    employee_id: '',
+    evaluation_date: '',
+    score: 0,
+    comments: ''
+  }
+}
+
+// 编辑绩效记录
+const handleEdit = (row) => {
+  dialogTitle.value = '编辑绩效记录'
+  dialogVisible.value = true
+  currentId.value = row.id
+  form.value = { ...row }
+}
+
+// 删除绩效记录
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该绩效记录吗？', '提示', {
+      type: 'warning'
+    })
+    await deletePerformance(row.id)
+    ElMessage.success('删除成功')
+    await fetchPerformanceList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除绩效记录失败:', error)
+      ElMessage.error('删除绩效记录失败')
+    }
+  }
+}
+
+// 提交表单
+const handleSubmit = async () => {
+  if (!formRef.value) return
+  
+  await formRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        if (currentId.value) {
+          await updatePerformance(currentId.value, form.value)
+          ElMessage.success('更新成功')
+        } else {
+          await addPerformance(form.value)
+          ElMessage.success('添加成功')
+        }
+        dialogVisible.value = false
+        await fetchPerformanceList()
+      } catch (error) {
+        console.error('操作失败:', error)
+        ElMessage.error('操作失败')
+      }
+    }
+  })
+}
+
+// 关闭对话框
+const handleClose = (done) => {
+  formRef.value?.resetFields()
+  done()
+}
+
+// 页面加载时获取数据
+onMounted(() => {
+  fetchPerformanceList()
+  fetchEmployeeList()
+})
+}
+
+// 获取绩效列表
+const fetchPerformanceList = async () => {
+  try {
+    loading.value = true
+    const response = await request.get('/hr/performance')
+    performanceList.value = response.data
+  } catch (error) {
+    ElMessage.error('获取绩效列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 获取员工列表
+const fetchEmployeeList = async () => {
+  try {
+    const response = await getEmployeeList()
+    employeeList.value = response.data
+  } catch (error) {
+    ElMessage.error('获取员工列表失败')
+  }
+}
+
+// 添加绩效记录
+const handleAdd = () => {
+  form.value = {
+    employee_id: '',
+    evaluation_date: '',
+    score: 0,
+    comments: ''
+  }
+  dialogTitle.value = '添加绩效记录'
+  dialogVisible.value = true
+}
+
+// 编辑绩效记录
+const handleEdit = (row) => {
+  form.value = { ...row }
+  dialogTitle.value = '编辑绩效记录'
+  dialogVisible.value = true
+}
+
+// 删除绩效记录
+const handleDelete = (row) => {
+  ElMessageBox.confirm('确认删除该绩效记录吗？', '警告', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      await request.delete(`/hr/performance/${row.id}`)
+      ElMessage.success('删除成功')
+      fetchPerformanceList()
+    } catch (error) {
+      ElMessage.error('删除失败')
+    }
+  })
+}
+
+// 提交表单
+const handleSubmit = async () => {
+  if (!formRef.value) return
+  await formRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        if (form.value.id) {
+          await request.put(`/hr/performance/${form.value.id}`, form.value)
+          ElMessage.success('更新成功')
+        } else {
+          await request.post('/hr/performance', form.value)
+          ElMessage.success('添加成功')
+        }
+        dialogVisible.value = false
+        fetchPerformanceList()
+      } catch (error) {
+        ElMessage.error(form.value.id ? '更新失败' : '添加失败')
+      }
+    }
+  })
+}
+
+const handleClose = () => {
+  dialogVisible.value = false
+}
+
+const getScoreType = (score) => {
+  if (score >= 90) return 'success'
+  if (score >= 60) return 'warning'
+  return 'danger'
+}
+
+onMounted(() => {
+  fetchPerformanceList()
+  fetchEmployeeList()
+})
+</script>
+
+<style scoped>
+.performance-container {
+  padding: 20px;
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+</style>

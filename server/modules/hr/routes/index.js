@@ -11,6 +11,7 @@ const salaryRoutes = require('./salary');
 const employeeRoutes = require('./employee');
 const reportRoutes = require('./reports');
 const talentPoolRoutes = require('./talentPool');
+const performanceRoutes = require('./performance');
 
 // 导入控制器（用于兼容性路由）
 const onboardingController = require('../controllers/onboardingController');
@@ -24,6 +25,7 @@ router.use('/salary', salaryRoutes);
 router.use('/employee', employeeRoutes);
 router.use('/reports', reportRoutes);
 router.use('/talent-pool', talentPoolRoutes);
+router.use('/performances', performanceRoutes);
 
 // HR模块兼容性路由 - 离职申请（旧路径兼容）
 // 提供 /api/hr/offboarding/applications 的兼容性访问

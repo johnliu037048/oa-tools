@@ -281,3 +281,49 @@ export const convertToOnboarding = (id, data) => {
     data
   })
 }
+
+// ==================== 绩效管理 ====================
+
+// 获取员工列表
+export const getEmployeeList = (params) => {
+  return request({
+    url: '/hr/employees',
+    method: 'get',
+    params
+  })
+}
+
+// 获取绩效列表
+export const getPerformanceList = (params) => {
+  return request({
+    url: '/hr/performances',
+    method: 'get',
+    params
+  })
+}
+
+// 添加绩效记录
+export const addPerformance = (data) => {
+  return request({
+    url: '/hr/performances',
+    method: 'post',
+    data
+  })
+}
+
+// 更新绩效记录
+export const updatePerformance = (id, data) => {
+  return request({
+    url: `/hr/performances/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+// 删除绩效记录
+export const deletePerformance = (id) => {
+  return request({
+    url: `/hr/performances/${id}`,
+    method: 'delete'
+  })
+}
