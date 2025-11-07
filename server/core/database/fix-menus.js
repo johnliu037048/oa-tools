@@ -16,19 +16,22 @@ console.log('');
 // 要插入或更新的菜单数据
 const menus = [
   // 主菜单项
+  { id: 2, name: '系统管理', path: '/system', component: null, icon: 'Cog', parent_id: 0, level: 1, sort_order: 1, type: 1, status: 1 },
   { id: 7, name: 'HR管理', path: '/hr', component: null, icon: 'Users', parent_id: 0, level: 1, sort_order: 2, type: 1, status: 1 },
   { id: 20, name: '财务管理', path: '/finance', component: null, icon: 'CreditCard', parent_id: 0, level: 1, sort_order: 3, type: 1, status: 1 },
-  { id: 30, name: '工具箱', path: '/tools', component: null, icon: 'Tool', parent_id: 0, level: 1, sort_order: 4, type: 1, status: 1 },
+  { id: 40, name: '店铺管理', path: '/shop', component: null, icon: 'Store', parent_id: 0, level: 1, sort_order: 4, type: 1, status: 1 },
+  { id: 30, name: '工具箱', path: '/tools', component: null, icon: 'Tool', parent_id: 0, level: 1, sort_order: 5, type: 1, status: 1 },
 
   // HR管理子菜单
   { id: 8, name: '招聘管理', path: '/hr/recruitment', component: 'hr/Recruitment', icon: 'UserPlus', parent_id: 7, level: 2, sort_order: 1, type: 1, status: 1 },
   { id: 14, name: '人才库管理', path: '/hr/talent-pool', component: 'hr/TalentPool', icon: 'Briefcase', parent_id: 7, level: 2, sort_order: 2, type: 1, status: 1 },
   { id: 9, name: '入职离职管理', path: '/hr/onboarding', component: 'hr/Onboarding', icon: 'UserCheck', parent_id: 7, level: 2, sort_order: 3, type: 1, status: 1 },
   { id: 10, name: '考勤、请假', path: '/hr/attendance', component: 'hr/Attendance', icon: 'Clock', parent_id: 7, level: 2, sort_order: 4, type: 1, status: 1 },
-  { id: 11, name: '薪酬福利管理', path: '/hr/salary', component: 'hr/Salary', icon: 'CurrencyDollar', parent_id: 7, level: 2, sort_order: 5, type: 1, status: 1 },
+  { id: 11, name: '薪酬管理', path: '/hr/salary', component: 'hr/Salary', icon: 'CurrencyDollar', parent_id: 7, level: 2, sort_order: 5, type: 1, status: 1 },
   { id: 12, name: '档案管理', path: '/hr/employee', component: 'hr/Employee', icon: 'DocumentText', parent_id: 7, level: 2, sort_order: 6, type: 1, status: 1 },
-  { id: 13, name: '报表分析', path: '/hr/reports', component: 'hr/Report', icon: 'ChartBar', parent_id: 7, level: 2, sort_order: 7, type: 1, status: 1 },
-  { id: 15, name: '绩效管理', path: '/hr/performance', component: 'hr/Performance', icon: 'Star', parent_id: 7, level: 2, sort_order: 8, type: 1, status: 1 },
+  { id: 15, name: '绩效管理', path: '/hr/performance', component: 'hr/Performance', icon: 'Star', parent_id: 7, level: 2, sort_order: 7, type: 1, status: 1 },
+  { id: 45, name: '工资计算', path: '/shop/salary', component: 'shop/Salary', icon: 'Calculator', parent_id: 7, level: 2, sort_order: 8, type: 1, status: 1 },
+  { id: 13, name: '报表分析', path: '/hr/reports', component: 'hr/Report', icon: 'ChartBar', parent_id: 7, level: 2, sort_order: 9, type: 1, status: 1 },
   // 系统管理子菜单 - 字典管理
   { id: 26, name: '字典管理', path: '/system/dictionary', component: 'system/Dictionary', icon: 'Notebook', parent_id: 2, level: 2, sort_order: 5, type: 1, status: 1 },
   
@@ -51,6 +54,14 @@ const menus = [
   { id: 34, name: '图片/视频转换', path: '/tools/media-converter', component: 'tools/MediaConverter', icon: 'Document', parent_id: 30, level: 2, sort_order: 4, type: 1, status: 1 },
   { id: 35, name: '绘图', path: '/tools/drawing', component: 'tools/Drawing', icon: 'Document', parent_id: 30, level: 2, sort_order: 5, type: 1, status: 1 },
   { id: 36, name: '本地文件检索', path: '/tools/local-file-search', component: 'tools/LocalFileSearch', icon: 'Document', parent_id: 30, level: 2, sort_order: 6, type: 1, status: 1 },
+
+  // 店铺管理子菜单
+  { id: 41, name: '店铺列表', path: '/shop/list', component: 'shop/Shop', icon: 'ListBullet', parent_id: 40, level: 2, sort_order: 1, type: 1, status: 1 },
+  { id: 42, name: '商品管理', path: '/shop/products', component: 'shop/Product', icon: 'Box', parent_id: 40, level: 2, sort_order: 2, type: 1, status: 1 },
+  { id: 43, name: '优惠折扣', path: '/shop/discounts', component: 'shop/Discount', icon: 'Tag', parent_id: 40, level: 2, sort_order: 3, type: 1, status: 1 },
+  { id: 44, name: '推广活动', path: '/shop/promotions', component: 'shop/Promotion', icon: 'Megaphone', parent_id: 40, level: 2, sort_order: 4, type: 1, status: 1 },
+  { id: 46, name: '报表分析', path: '/shop/reports', component: 'shop/Report', icon: 'ChartBar', parent_id: 40, level: 2, sort_order: 5, type: 1, status: 1 },
+  // 工具箱和店铺管理子菜单顺序保持不变
 ];
 
 let completed = 0;

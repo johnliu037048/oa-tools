@@ -7,23 +7,6 @@
           <el-button type="primary" @click="handleAdd">添加绩效记录</el-button>
         </div>
       </template>
-      
-      <el-table
-        v-loading="loading"
-        :data="performanceList"
-        style="width: 100%"
-      >
-        <el-table-column prop="employee_name" label="员工姓名" />
-        <el-table-column prop="evaluation_date" label="评估日期" width="180" />
-        <el-table-column prop="score" label="得分" width="100" />
-        <el-table-column prop="comments" label="评语" />
-        <el-table-column label="操作" width="180" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
-            <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
 
       <el-table :data="performanceList" style="width: 100%" v-loading="loading">
         <el-table-column prop="employee_name" label="员工姓名" />
@@ -121,105 +104,6 @@ const rules = {
   evaluation_date: [{ required: true, message: '请选择评估日期', trigger: 'change' }],
   score: [{ required: true, message: '请输入得分', trigger: 'blur' }],
   comments: [{ required: true, message: '请输入评语', trigger: 'blur' }]
-}
-
-// 获取绩效列表
-const fetchPerformanceList = async () => {
-  loading.value = true
-  try {
-    const { data } = await getPerformanceList()
-    performanceList.value = data
-  } catch (error) {
-    console.error('获取绩效列表失败:', error)
-    ElMessage.error('获取绩效列表失败')
-  }
-  loading.value = false
-}
-
-// 获取员工列表
-const fetchEmployeeList = async () => {
-  try {
-    const { data } = await getEmployeeList()
-    employeeList.value = data
-  } catch (error) {
-    console.error('获取员工列表失败:', error)
-    ElMessage.error('获取员工列表失败')
-  }
-}
-
-// 添加绩效记录
-const handleAdd = () => {
-  dialogTitle.value = '添加绩效记录'
-  dialogVisible.value = true
-  currentId.value = null
-  form.value = {
-    employee_id: '',
-    evaluation_date: '',
-    score: 0,
-    comments: ''
-  }
-}
-
-// 编辑绩效记录
-const handleEdit = (row) => {
-  dialogTitle.value = '编辑绩效记录'
-  dialogVisible.value = true
-  currentId.value = row.id
-  form.value = { ...row }
-}
-
-// 删除绩效记录
-const handleDelete = async (row) => {
-  try {
-    await ElMessageBox.confirm('确定要删除该绩效记录吗？', '提示', {
-      type: 'warning'
-    })
-    await deletePerformance(row.id)
-    ElMessage.success('删除成功')
-    await fetchPerformanceList()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除绩效记录失败:', error)
-      ElMessage.error('删除绩效记录失败')
-    }
-  }
-}
-
-// 提交表单
-const handleSubmit = async () => {
-  if (!formRef.value) return
-  
-  await formRef.value.validate(async (valid) => {
-    if (valid) {
-      try {
-        if (currentId.value) {
-          await updatePerformance(currentId.value, form.value)
-          ElMessage.success('更新成功')
-        } else {
-          await addPerformance(form.value)
-          ElMessage.success('添加成功')
-        }
-        dialogVisible.value = false
-        await fetchPerformanceList()
-      } catch (error) {
-        console.error('操作失败:', error)
-        ElMessage.error('操作失败')
-      }
-    }
-  })
-}
-
-// 关闭对话框
-const handleClose = (done) => {
-  formRef.value?.resetFields()
-  done()
-}
-
-// 页面加载时获取数据
-onMounted(() => {
-  fetchPerformanceList()
-  fetchEmployeeList()
-})
 }
 
 // 获取绩效列表

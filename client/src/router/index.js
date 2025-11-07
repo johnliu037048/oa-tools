@@ -192,6 +192,37 @@ const routes = [
         name: 'LocalFileSearch',
         component: () => import('../views/tools/LocalFileSearch.vue'),
         meta: { title: '本地文件检索' }
+      },
+      // 店铺管理模块路由
+      {
+        path: 'shop/list',
+        name: 'ShopList',
+        component: () => import('../views/shop/Shop.vue'),
+        meta: { title: '店铺列表' }
+      },
+      {
+        path: 'shop/products',
+        name: 'ShopProduct',
+        component: () => import('../views/shop/Product.vue'),
+        meta: { title: '商品管理' }
+      },
+      {
+        path: 'shop/discounts',
+        name: 'ShopDiscount',
+        component: () => import('../views/shop/Discount.vue'),
+        meta: { title: '优惠折扣' }
+      },
+      {
+        path: 'shop/promotions',
+        name: 'ShopPromotion',
+        component: () => import('../views/shop/Promotion.vue'),
+        meta: { title: '推广活动' }
+      },
+      {
+        path: 'shop/salary',
+        name: 'ShopSalary',
+        component: () => import('../views/shop/Salary.vue'),
+        meta: { title: '销售与工资计算' }
       }
     ]
   }

@@ -32,12 +32,14 @@ const authRoutes = require('./modules/auth/routes');
 const systemRoutes = require('./modules/system/routes');
 const hrRoutes = require('./modules/hr/routes');
 const financeRoutes = require('./modules/finance/routes');
+const shopRoutes = require('./modules/shop/routes');
 
 // 注册模块路由
 app.use('/api/auth', authRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/hr', hrRoutes);
 app.use('/api/finance', financeRoutes);
+app.use('/api/shop', shopRoutes);
 
 // 启动服务器
 app.listen(PORT, () => {

@@ -2,9 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const performanceController = require('../controllers/performanceController');
-console.log('performanceController:', performanceController);
 const authMiddleware = require('../../../core/middleware/auth');
-console.log('authMiddleware:', authMiddleware);
 
 // 验证规则
 const performanceValidation = [

@@ -6,34 +6,29 @@ echo        OA管理系统管理菜单
 echo ========================================
 echo.
 echo 请选择操作:
-echo 1. 安装依赖
-echo 2. 初始化数据库
-echo 3. 重置数据库
+echo 1. 初始化数据库
+echo 2. 重置数据库
+echo 3. 安装依赖
 echo 4. 清理项目
-echo 5. 启动系统
-echo 6. 停止服务
-echo 7. 测试CRUD功能
-echo 8. 退出
+echo 5. 修复菜单数据
+echo 6. 启动系统
+echo 7. 停止服务
+echo 8. 测试CRUD功能
+echo 9. 退出
 echo.
 
-set /p choice=请输入选择 (1-8): 
+set /p choice=请输入选择 (1-9): 
 
-if "%choice%"=="1" goto install
-if "%choice%"=="2" goto init_db
-if "%choice%"=="3" goto reset_db
+if "%choice%"=="1" goto init_db
+if "%choice%"=="2" goto reset_db
+if "%choice%"=="3" goto install
 if "%choice%"=="4" goto clean
-if "%choice%"=="5" goto start
-if "%choice%"=="6" goto stop
-if "%choice%"=="7" goto test_crud
-if "%choice%"=="8" goto exit
+if "%choice%"=="5" goto fix_menus
+if "%choice%"=="6" goto start
+if "%choice%"=="7" goto stop
+if "%choice%"=="8" goto test_crud
+if "%choice%"=="9" goto exit
 echo 无效选择，请重新输入
-pause
-goto menu
-
-:install
-echo.
-echo 正在安装依赖...
-call bat\install.bat
 pause
 goto menu
 
@@ -48,6 +43,20 @@ goto menu
 echo.
 echo 正在重置数据库...
 call bat\reset-db.bat
+pause
+goto menu
+
+:install
+echo.
+echo 正在安装依赖...
+call bat\install.bat
+pause
+goto menu
+
+:fix_menus
+echo.
+echo 正在修复菜单数据...
+node server\core\database\fix-menus.js
 pause
 goto menu
 

@@ -1,4 +1,3 @@
-console.log('performanceController loaded');
 const db = require('../../../core/database/db-connection');
 const { validationResult } = require('express-validator');
 const { successResponse, errorResponse } = require('../../../core/utils/response');
