@@ -188,10 +188,34 @@ const routes = [
         meta: { title: '绘图' }
       },
       {
+        path: 'tools/file-search',
+        name: 'FileSearch',
+        component: () => import('../views/tools/FileSearch.vue'),
+        meta: { title: '文件搜索' }
+      },
+      {
         path: 'tools/local-file-search',
         name: 'LocalFileSearch',
         component: () => import('../views/tools/LocalFileSearch.vue'),
         meta: { title: '本地文件检索' }
+      },
+      {
+        path: 'tools/text-replace',
+        name: 'TextReplace',
+        component: () => import('../views/tools/TextReplace.vue'),
+        meta: { title: '文本替换' }
+      },
+      {
+        path: 'tools/encoding-tools',
+        name: 'EncodingTools',
+        component: () => import('../views/tools/EncodingTools.vue'),
+        meta: { title: '编码解码工具' }
+      },
+      {
+        path: 'tools/timestamp-converter',
+        name: 'TimestampConverter',
+        component: () => import('../views/tools/TimestampConverter.vue'),
+        meta: { title: '时间戳转换工具' }
       },
       // 店铺管理模块路由
       {
@@ -223,6 +247,12 @@ const routes = [
         name: 'ShopSalary',
         component: () => import('../views/shop/Salary.vue'),
         meta: { title: '销售与工资计算' }
+      },
+      {
+        path: 'shop/reports',
+        name: 'ShopReport',
+        component: () => import('../views/shop/Report.vue'),
+        meta: { title: '报表分析' }
       }
     ]
   }
@@ -239,22 +269,23 @@ const MAX_CHUNK_ERROR_RETRY = 3;
 
 router.onError((error) => {
   console.error('路由加载错误:', error)
-  const pattern = /Loading chunk (\w)+ failed/g
   const errorMessage = error?.message || error?.toString() || ''
-  const isChunkLoadError = errorMessage.match(pattern)
   
-  if (isChunkLoadError) {
+  // 检查是否是 chunk 加载错误或动态导入失败
+  const isChunkLoadError = /Loading chunk (\w)+ failed/g.test(errorMessage)
+  const isDynamicImportError = /Failed to fetch dynamically imported module/g.test(errorMessage)
+  
+  if (isChunkLoadError || isDynamicImportError) {
     chunkLoadErrorCount++;
     // 只有在多次失败后才刷新页面
     if (chunkLoadErrorCount >= MAX_CHUNK_ERROR_RETRY) {
-      console.warn('Chunk 加载多次失败，重新加载页面')
+      console.warn('模块加载多次失败，重新加载页面')
       chunkLoadErrorCount = 0; // 重置计数器
       setTimeout(() => {
         window.location.reload()
       }, 300)
     } else {
-      console.warn(`Chunk 加载失败 (${chunkLoadErrorCount}/${MAX_CHUNK_ERROR_RETRY})，尝试恢复...`)
-      // 不刷新，让 Vue Router 自己处理
+      console.warn(`模块加载失败 (${chunkLoadErrorCount}/${MAX_CHUNK_ERROR_RETRY})，尝试恢复...`)
     }
   } else {
     // 重置计数器，因为不是 chunk 错误

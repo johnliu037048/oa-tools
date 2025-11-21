@@ -33,6 +33,7 @@ const systemRoutes = require('./modules/system/routes');
 const hrRoutes = require('./modules/hr/routes');
 const financeRoutes = require('./modules/finance/routes');
 const shopRoutes = require('./modules/shop/routes');
+const toolsRoutes = require('./modules/tools/routes/tools');
 
 // 注册模块路由
 app.use('/api/auth', authRoutes);
@@ -40,11 +41,12 @@ app.use('/api/system', systemRoutes);
 app.use('/api/hr', hrRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/shop', shopRoutes);
+app.use('/api/tools', toolsRoutes);
 
 // 启动服务器
 app.listen(PORT, () => {
   console.log(`服务器运行在 http://localhost:${PORT}`);
   console.log('数据库初始化完成');
   console.log('模块化架构已启用');
-  console.log('可用模块: system, hr, finance');
+  console.log('可用模块: system, hr, finance, shop, tools');
 });
