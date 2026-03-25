@@ -217,6 +217,12 @@ const routes = [
         component: () => import('../views/tools/TimestampConverter.vue'),
         meta: { title: '时间戳转换工具' }
       },
+      {
+        path: 'tools/uuid-generator',
+        name: 'UuidGenerator',
+        component: () => import('../views/tools/UuidGenerator.vue'),
+        meta: { title: 'UUID生成' }
+      },
       // 店铺管理模块路由
       {
         path: 'shop/list',

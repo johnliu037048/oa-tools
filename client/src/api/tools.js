@@ -32,7 +32,8 @@ export const httpRequest = (config) => {
   return request({
     url: '/tools/http-request',
     method: 'post',
-    data: config
+    data: config,
+    timeout: config.timeout || 30000
   })
 }
 

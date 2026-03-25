@@ -51,6 +51,7 @@ const menus = [
   { id: 31, name: 'HTTP调试', path: '/tools/http-debug', component: 'tools/HttpDebug', icon: 'Document', parent_id: 30, level: 2, sort_order: 1, type: 1, status: 1 },
   { id: 32, name: 'JSON格式化', path: '/tools/json-formatter', component: 'tools/JsonFormatter', icon: 'Document', parent_id: 30, level: 2, sort_order: 2, type: 1, status: 1 },
   { id: 33, name: '文档转换', path: '/tools/convert-docs', component: 'tools/ConvertDocuments', icon: 'Document', parent_id: 30, level: 2, sort_order: 3, type: 1, status: 1 },
+  { id: 37, name: 'UUID生成', path: '/tools/uuid-generator', component: 'tools/UuidGenerator', icon: 'Document', parent_id: 30, level: 2, sort_order: 7, type: 1, status: 1 },
   { id: 34, name: '图片/视频转换', path: '/tools/media-converter', component: 'tools/MediaConverter', icon: 'Document', parent_id: 30, level: 2, sort_order: 4, type: 1, status: 1 },
   { id: 35, name: '绘图', path: '/tools/drawing', component: 'tools/Drawing', icon: 'Document', parent_id: 30, level: 2, sort_order: 5, type: 1, status: 1 },
   { id: 36, name: '本地文件检索', path: '/tools/local-file-search', component: 'tools/LocalFileSearch', icon: 'Document', parent_id: 30, level: 2, sort_order: 6, type: 1, status: 1 },

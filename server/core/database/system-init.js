@@ -148,7 +148,8 @@ const insertSystemSampleData = () => {
                 { id: 33, name: '编码解码工具', path: '/tools/encoding-tools', component: 'tools/EncodingTools', icon: 'Document', parent_id: 30, level: 2, sort_order: 3, type: 1, status: 1 },
                 { id: 34, name: '时间戳转换工具', path: '/tools/timestamp-converter', component: 'tools/TimestampConverter', icon: 'Document', parent_id: 30, level: 2, sort_order: 4, type: 1, status: 1 },
                 { id: 35, name: 'HTTP调试', path: '/tools/http-debug', component: 'tools/HttpDebug', icon: 'Document', parent_id: 30, level: 2, sort_order: 5, type: 1, status: 1 },
-                { id: 36, name: 'JSON格式化', path: '/tools/json-formatter', component: 'tools/JsonFormatter', icon: 'Document', parent_id: 30, level: 2, sort_order: 6, type: 1, status: 1 }
+                { id: 36, name: 'JSON格式化', path: '/tools/json-formatter', component: 'tools/JsonFormatter', icon: 'Document', parent_id: 30, level: 2, sort_order: 6, type: 1, status: 1 },
+                { id: 37, name: 'UUID生成', path: '/tools/uuid-generator', component: 'tools/UuidGenerator', icon: 'Document', parent_id: 30, level: 2, sort_order: 7, type: 1, status: 1 }
               ];
               
               let menuCount = 0;

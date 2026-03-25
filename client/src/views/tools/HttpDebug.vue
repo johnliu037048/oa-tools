@@ -12,6 +12,8 @@
                   <el-button @click="loadExample" size="small">加载示例</el-button>
                   <el-button @click="importRequest" size="small">导入</el-button>
                   <el-button @click="exportRequest" size="small">导出</el-button>
+                  <el-button @click="openBulkImportDialog" size="small">导入URL</el-button>
+                  <el-button @click="openSaveModal" size="small" type="primary">保存</el-button>
                   <el-button @click="clearRequest" size="small">清空</el-button>
                 </el-button-group>
               </div>
@@ -39,37 +41,88 @@
                 />
               </el-form-item>
               
-              <!-- 请求头 -->
-              <el-form-item label="请求头">
-                <div class="headers-section">
-                  <div v-for="(header, index) in requestConfig.headers" :key="index" class="header-item">
-                    <el-input
-                      v-model="header.key"
-                      placeholder="Header名称"
-                      style="width: 40%;"
-                      @input="updateHeaderKey(index)"
-                    />
-                    <span class="colon">:</span>
-                    <el-input
-                      v-model="header.value"
-                      placeholder="Header值"
-                      style="width: 40%;"
-                    />
-                    <el-button
-                      type="danger"
-                      size="small"
-                      @click="removeHeader(index)"
-                      :disabled="requestConfig.headers.length === 1"
-                      circle
-                    >
-                      <el-icon><Close /></el-icon>
-                    </el-button>
-                  </div>
-                  <el-button @click="addHeader" size="small" type="primary" plain>
-                    <el-icon><Plus /></el-icon>
-                    添加请求头
-                  </el-button>
-                </div>
+              <el-form-item label="超时时间">
+                <el-input-number
+                  v-model="requestConfig.timeout"
+                  :min="1000"
+                  :max="300000"
+                  :step="1000"
+                  style="width: 150px;"
+                  controls-position="right"
+                />
+                <span class="timeout-unit">毫秒</span>
+                <el-text size="small" type="info" style="margin-left: 8px;">
+                  默认30秒，范围1-300秒
+                </el-text>
+              </el-form-item>
+              
+              <!-- Params 和 Headers 标签页 -->
+              <el-form-item label="参数设置">
+                <el-tabs v-model="activeParamTab" type="card" size="small">
+                  <el-tab-pane label="Query Params" name="params">
+                    <div class="params-section">
+                      <div v-for="(param, index) in requestConfig.params" :key="index" class="param-item">
+                        <el-input
+                          v-model="param.key"
+                          placeholder="参数名"
+                          style="width: 40%;"
+                          @input="updateParamKey(index)"
+                        />
+                        <span class="colon">=</span>
+                        <el-input
+                          v-model="param.value"
+                          placeholder="参数值"
+                          style="width: 40%;"
+                        />
+                        <el-button
+                          type="danger"
+                          size="small"
+                          @click="removeParam(index)"
+                          :disabled="requestConfig.params.length === 1"
+                          circle
+                        >
+                          <el-icon><Close /></el-icon>
+                        </el-button>
+                      </div>
+                      <el-button @click="addParam" size="small" type="primary" plain>
+                        <el-icon><Plus /></el-icon>
+                        添加参数
+                      </el-button>
+                    </div>
+                  </el-tab-pane>
+                  
+                  <el-tab-pane label="Headers" name="headers">
+                    <div class="headers-section">
+                      <div v-for="(header, index) in requestConfig.headers" :key="index" class="header-item">
+                        <el-input
+                          v-model="header.key"
+                          placeholder="Header名称"
+                          style="width: 40%;"
+                          @input="updateHeaderKey(index)"
+                        />
+                        <span class="colon">:</span>
+                        <el-input
+                          v-model="header.value"
+                          placeholder="Header值"
+                          style="width: 40%;"
+                        />
+                        <el-button
+                          type="danger"
+                          size="small"
+                          @click="removeHeader(index)"
+                          :disabled="requestConfig.headers.length === 1"
+                          circle
+                        >
+                          <el-icon><Close /></el-icon>
+                        </el-button>
+                      </div>
+                      <el-button @click="addHeader" size="small" type="primary" plain>
+                        <el-icon><Plus /></el-icon>
+                        添加请求头
+                      </el-button>
+                    </div>
+                  </el-tab-pane>
+                </el-tabs>
               </el-form-item>
               
               <!-- 请求体 -->
@@ -268,7 +321,83 @@
         </el-row>
       </el-card>
     </div>
+
+    <el-dialog v-model="saveModalVisible" title="保存请求配置" width="400px">
+      <el-form :model="saveForm" label-width="80px" style="margin-top: 12px;">
+        <el-form-item label="名称" required>
+          <el-input v-model="saveForm.name" placeholder="请输入名称" />
+        </el-form-item>
+        <el-form-item label="目录">
+          <el-input v-model="saveForm.category" placeholder="请输入目录（可选）" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="saveModalVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveCurrentRequest">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <div class="card-container" style="margin-top: 24px;">
+      <el-card>
+        <template #header>
+          <div class="card-header">
+            <span>已保存请求</span>
+            <el-button-group>
+              <el-button @click="clearSavedRequests" size="small" type="danger" :disabled="!savedRequests.length">清空全部</el-button>
+            </el-button-group>
+          </div>
+        </template>
+
+        <div v-if="!savedRequests.length" style="padding: 16px;">暂无已保存请求，使用“保存”按钮持久化当前配置。</div>
+
+        <el-collapse v-else v-model="activeSavedCategory" accordion>
+          <el-collapse-item v-for="(items, category) in groupedSavedRequests" :key="category" :title="category" :name="category">
+            <el-table :data="items" size="small" style="width: 100%;" border>
+              <el-table-column prop="name" label="名称" />
+              <el-table-column prop="method" label="方法" width="80" />
+              <el-table-column prop="url" label="URL" />
+              <el-table-column label="操作" width="170">
+                <template #default="{ row }">
+                  <el-button size="mini" type="primary" @click="loadSavedRequest(row)">加载</el-button>
+                  <el-button size="mini" type="danger" @click="deleteSavedRequest(row.id)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-collapse-item>
+        </el-collapse>
+      </el-card>
+    </div>
   </div>
+
+  <el-dialog v-model="bulkImportDialogVisible" title="批量导入 URL / cURL" width="600px">
+    <div>
+      <p>支持粘贴多行 URL、cURL 命令或自定义格式：</p>
+      <el-input
+        v-model="bulkImportText"
+        type="textarea"
+        :rows="8"
+        placeholder="格式示例：
+
+1. 简单URL：
+https://api.example.com/foo
+
+2. cURL命令：
+curl -X POST -H 'Content-Type: application/json' https://api.example.com/foo
+
+3. 自定义多行格式：
+POST https://api.example.com/foo
+Content-Type: application/json
+Authorization: Bearer token
+
+{&quot;key&quot;: &quot;value&quot;}"
+      />
+    </div>
+    <template #footer>
+      <el-button @click="bulkImportDialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="handleBulkImport">导入并加载</el-button>
+      <el-button type="success" @click="pasteFromClipboard">从剪贴板粘贴</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -282,7 +411,9 @@ const requestConfig = ref({
   method: 'GET',
   url: '',
   headers: [{ key: '', value: '' }],
-  data: ''
+  data: '',
+  timeout: 30000,
+  params: [{ key: '', value: '' }]
 })
 
 const formData = ref([{ key: '', value: '' }])
@@ -292,6 +423,43 @@ const response = ref(null)
 const responseTime = ref(0)
 const errorMessage = ref('')
 const activeResponseTab = ref('body')
+
+const saveModalVisible = ref(false)
+const saveForm = ref({ name: '', category: '' })
+const savedRequests = ref([])
+const activeSavedCategory = ref('')
+const activeParamTab = ref('params')
+
+const bulkImportDialogVisible = ref(false)
+const bulkImportText = ref('')
+
+const STORAGE_KEY = 'oa-tools-http-debug-saved-requests'
+
+const loadSavedRequests = () => {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    if (Array.isArray(data)) {
+      savedRequests.value = data
+    } else {
+      savedRequests.value = []
+    }
+  } catch (e) {
+    savedRequests.value = []
+  }
+}
+
+const persistSavedRequests = () => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(savedRequests.value))
+}
+
+const groupedSavedRequests = computed(() => {
+  return savedRequests.value.reduce((acc, item) => {
+    const category = item.category || '未分类'
+    if (!acc[category]) acc[category] = []
+    acc[category].push(item)
+    return acc
+  }, {})
+})
 
 // 计算属性
 const isValidRequest = computed(() => {
@@ -305,12 +473,80 @@ const isJsonResponse = computed(() => {
 })
 
 const effectiveHeaders = computed(() => {
-  return requestConfig.value.headers.filter(h => h.key && h.value)
+  return requestConfig.value.headers
+    .filter(h => h.key)
+    .map(h => ({ key: h.key, value: h.value == null ? '' : h.value }))
+})
+
+const effectiveParams = computed(() => {
+  return requestConfig.value.params
+    .filter(p => p.key)
+    .map(p => ({ key: p.key, value: p.value == null ? '' : p.value }))
 })
 
 // 方法
+const parseUrlParams = (url) => {
+  try {
+    const urlObj = new URL(url)
+    const params = []
+    
+    for (const [key, value] of urlObj.searchParams) {
+      params.push({ key, value })
+    }
+    
+    // 如果没有参数，至少保留一个空行
+    if (params.length === 0) {
+      params.push({ key: '', value: '' })
+    }
+    
+    return params
+  } catch (error) {
+    // URL无效时返回空参数
+    return [{ key: '', value: '' }]
+  }
+}
+
+const buildUrlWithParams = (baseUrl, params) => {
+  try {
+    const urlObj = new URL(baseUrl)
+    
+    // 清除现有的查询参数
+    urlObj.search = ''
+    
+    // 添加有效的参数（key必需，value允许空）
+    params.forEach(param => {
+      if (param.key != null && param.key !== '') {
+        urlObj.searchParams.append(param.key, param.value == null ? '' : param.value)
+      }
+    })
+    
+    return urlObj.toString()
+  } catch (error) {
+    // 如果URL无效，返回原URL
+    return baseUrl
+  }
+}
+
 const validateUrl = () => {
-  // URL验证逻辑已在计算属性中实现
+  if (!requestConfig.value.url) return
+  
+  // 自动解析URL中的查询参数
+  const parsedParams = parseUrlParams(requestConfig.value.url)
+  
+  // 如果URL中有参数，更新params（但不覆盖用户已设置的参数，除非是空状态）
+  const hasExistingParams = requestConfig.value.params.some(p => p.key || p.value)
+  if (!hasExistingParams && parsedParams.length > 0 && parsedParams[0].key) {
+    requestConfig.value.params = parsedParams
+  }
+  
+  // 移除URL中的查询参数，保持干净的URL
+  try {
+    const urlObj = new URL(requestConfig.value.url)
+    urlObj.search = ''
+    requestConfig.value.url = urlObj.toString()
+  } catch (error) {
+    // URL无效，保持原样
+  }
 }
 
 const validateRequestBody = () => {
@@ -335,6 +571,20 @@ const removeHeader = (index) => {
 
 const updateHeaderKey = (index) => {
   // 可以在这里添加特殊头部处理逻辑
+}
+
+const addParam = () => {
+  requestConfig.value.params.push({ key: '', value: '' })
+}
+
+const removeParam = (index) => {
+  if (requestConfig.value.params.length > 1) {
+    requestConfig.value.params.splice(index, 1)
+  }
+}
+
+const updateParamKey = (index) => {
+  // 可以在这里添加参数处理逻辑
 }
 
 const addFormItem = () => {
@@ -385,8 +635,9 @@ const sendRequest = async () => {
     // 构建请求配置
     const config = {
       method: requestConfig.value.method,
-      url: requestConfig.value.url,
-      headers: {}
+      url: buildUrlWithParams(requestConfig.value.url, effectiveParams.value),
+      headers: {},
+      timeout: requestConfig.value.timeout
     }
 
     // 添加请求头
@@ -403,8 +654,8 @@ const sendRequest = async () => {
       } else if (requestBodyType.value === 'form') {
         const formObj = {}
         formData.value.forEach(item => {
-          if (item.key && item.value) {
-            formObj[item.key] = item.value
+          if (item.key != null && item.key !== '') {
+            formObj[item.key] = item.value == null ? '' : item.value
           }
         })
         config.data = formObj
@@ -439,11 +690,89 @@ const clearRequest = () => {
     method: 'GET',
     url: '',
     headers: [{ key: '', value: '' }],
-    data: ''
+    params: [{ key: '', value: '' }],
+    data: '',
+    timeout: 30000
   }
   formData.value = [{ key: '', value: '' }]
   requestBodyType.value = 'json'
   errorMessage.value = ''
+}
+
+const openSaveModal = () => {
+  saveForm.value = {
+    name: requestConfig.value.url ? `${requestConfig.value.method} ${requestConfig.value.url}` : '',
+    category: ''
+  }
+  saveModalVisible.value = true
+}
+
+const saveCurrentRequest = () => {
+  if (!requestConfig.value.url) {
+    ElMessage.warning('请先输入请求 URL 再保存')
+    return
+  }
+
+  if (!saveForm.value.name.trim()) {
+    ElMessage.warning('请输入保存名称')
+    return
+  }
+
+  const existingIndex = savedRequests.value.findIndex(item => item.name === saveForm.value.name && item.category === saveForm.value.category)
+
+  const record = {
+    id: existingIndex >= 0 ? savedRequests.value[existingIndex].id : Date.now(),
+    name: saveForm.value.name.trim(),
+    category: saveForm.value.category.trim(),
+    method: requestConfig.value.method,
+    url: requestConfig.value.url,
+    headers: requestConfig.value.headers,
+    params: requestConfig.value.params,
+    requestBodyType: requestBodyType.value,
+    data: requestConfig.value.data,
+    formData: formData.value,
+    timeout: requestConfig.value.timeout
+  }
+
+  if (existingIndex >= 0) {
+    savedRequests.value.splice(existingIndex, 1, record)
+    ElMessage.success('已更新保存配置')
+  } else {
+    savedRequests.value.push(record)
+    ElMessage.success('已保存请求配置')
+  }
+
+  persistSavedRequests()
+  saveModalVisible.value = false
+}
+
+const loadSavedRequest = (item) => {
+  requestConfig.value.method = item.method
+  requestConfig.value.url = item.url
+  requestConfig.value.headers = item.headers && item.headers.length ? item.headers : [{ key: '', value: '' }]
+  requestConfig.value.params = item.params && item.params.length ? item.params : [{ key: '', value: '' }]
+  requestBodyType.value = item.requestBodyType || 'json'
+  requestConfig.value.data = item.data || ''
+  requestConfig.value.timeout = item.timeout || 30000
+  formData.value = item.formData && item.formData.length ? item.formData : [{ key: '', value: '' }]
+  ElMessage.success(`已加载：${item.name}`)
+}
+
+const deleteSavedRequest = (id) => {
+  savedRequests.value = savedRequests.value.filter(item => item.id !== id)
+  persistSavedRequests()
+  ElMessage.success('已删除保存配置')
+}
+
+const clearSavedRequests = () => {
+  savedRequests.value = []
+  persistSavedRequests()
+  ElMessage.success('已清空所有保存配置')
+}
+
+const openBulkImportDialog = () => {
+  bulkImportText.value = ''
+  bulkImportDialogVisible.value = true
 }
 
 // 导出请求配置（类似 Postman）
@@ -453,6 +782,10 @@ const exportRequest = () => {
     request: {
       method: requestConfig.value.method,
       url: requestConfig.value.url,
+      timeout: requestConfig.value.timeout,
+      params: requestConfig.value.params
+        .filter(p => p.key && p.value)
+        .map(p => ({ key: p.key, value: p.value })),
       header: requestConfig.value.headers
         .filter(h => h.key && h.value)
         .map(h => ({ key: h.key, value: h.value })),
@@ -521,6 +854,17 @@ const importRequest = () => {
         if (data.request) {
           requestConfig.value.method = data.request.method || 'GET'
           requestConfig.value.url = data.request.url?.raw || data.request.url || ''
+          requestConfig.value.timeout = data.request.timeout || 30000
+          
+          // 导入查询参数
+          if (data.request.params && Array.isArray(data.request.params)) {
+            requestConfig.value.params = data.request.params.map(p => ({
+              key: p.key || '',
+              value: p.value || ''
+            }))
+          } else {
+            requestConfig.value.params = [{ key: '', value: '' }]
+          }
           
           // 导入请求头
           if (data.request.header && Array.isArray(data.request.header)) {
@@ -533,6 +877,8 @@ const importRequest = () => {
               key,
               value: String(value)
             }))
+          } else {
+            requestConfig.value.headers = [{ key: '', value: '' }]
           }
           
           // 导入请求体
@@ -559,12 +905,24 @@ const importRequest = () => {
         else if (data.method && data.url) {
           requestConfig.value.method = data.method
           requestConfig.value.url = data.url
+          requestConfig.value.timeout = data.timeout || 30000
+          
+          if (data.params && Array.isArray(data.params)) {
+            requestConfig.value.params = data.params.map(p => ({
+              key: p.key || '',
+              value: p.value || ''
+            }))
+          } else {
+            requestConfig.value.params = [{ key: '', value: '' }]
+          }
           
           if (data.headers && Array.isArray(data.headers)) {
             requestConfig.value.headers = data.headers.map(h => ({
               key: h.key || '',
               value: h.value || ''
             }))
+          } else {
+            requestConfig.value.headers = [{ key: '', value: '' }]
           }
           
           if (data.data) {
@@ -636,6 +994,206 @@ const copyResponse = async () => {
   }
 }
 
+const parseCurlCommand = (text) => {
+  // 预处理：移除行尾的反斜杠和多余的空白
+  const cleanedText = text
+    .replace(/\\\s*$/gm, '') // 移除行尾的反斜杠
+    .replace(/\s+/g, ' ') // 将多行合并为一行
+    .trim()
+
+  const curlRegex = /curl\s+(.+)/
+  const match = cleanedText.match(curlRegex)
+  if (!match) return null
+
+  const argsString = match[1]
+
+  // 使用更健壮的方式解析参数，支持单引号和双引号
+  const args = []
+  let current = ''
+  let inSingleQuote = false
+  let inDoubleQuote = false
+  let escaped = false
+
+  for (let i = 0; i < argsString.length; i++) {
+    const char = argsString[i]
+
+    if (escaped) {
+      current += char
+      escaped = false
+      continue
+    }
+
+    if (char === '\\') {
+      escaped = true
+      continue
+    }
+
+    if (char === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote
+      continue
+    }
+
+    if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote
+      continue
+    }
+
+    if (char === ' ' && !inSingleQuote && !inDoubleQuote) {
+      if (current.trim()) {
+        args.push(current.trim())
+        current = ''
+      }
+      continue
+    }
+
+    current += char
+  }
+
+  if (current.trim()) {
+    args.push(current.trim())
+  }
+
+  let method = 'GET'
+  let url = ''
+  const headers = []
+  let data = ''
+
+  for (let i = 0; i < args.length; i++) {
+    const token = args[i]
+
+    if (token === '-X' || token === '--request') {
+      method = (args[++i] || 'GET').toUpperCase()
+    } else if (token === '-H' || token === '--header') {
+      const headerText = (args[++i] || '').replace(/^['"]|['"]$/g, '')
+      // 改进的header解析：找到第一个冒号作为分隔符
+      const colonIndex = headerText.indexOf(':')
+      if (colonIndex > 0) {
+        const key = headerText.substring(0, colonIndex).trim()
+        const value = headerText.substring(colonIndex + 1).trim()
+        if (key) {
+          headers.push({ key, value })
+        }
+      }
+    } else if (token === '-d' || token === '--data' || token === '--data-raw' || token === '--data-binary') {
+      data = (args[++i] || '').replace(/^['"]|['"]$/g, '')
+      if (method === 'GET') method = 'POST'
+    } else if (!token.startsWith('-') && !url) {
+      url = token.replace(/^['"]|['"]$/g, '')
+    }
+  }
+
+  return { method, url, headers: headers.length ? headers : [{ key: '', value: '' }], data, params: [{ key: '', value: '' }] }
+}
+
+const applyImportedRequest = (imported) => {
+  if (!imported || !imported.url) {
+    ElMessage.error('无法解析 URL')
+    return
+  }
+
+  requestConfig.value.method = imported.method || 'GET'
+  requestConfig.value.url = imported.url
+  requestConfig.value.timeout = imported.timeout || 30000
+  requestConfig.value.headers = imported.headers && imported.headers.length ? imported.headers : [{ key: '', value: '' }]
+  requestConfig.value.params = imported.params && imported.params.length ? imported.params : [{ key: '', value: '' }]
+  requestBodyType.value = imported.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(imported.method) ? 'json' : 'json'
+  requestConfig.value.data = imported.data || ''
+  formData.value = [{ key: '', value: '' }]
+
+  // 解析URL中的查询参数
+  parseUrlParams(requestConfig.value.url)
+
+  bulkImportDialogVisible.value = false
+  ElMessage.success('导入并加载完成')
+}
+
+const handleBulkImport = async () => {
+  const text = bulkImportText.value.trim()
+  if (!text) {
+    ElMessage.warning('请输入 URL 或 cURL 文本')
+    return
+  }
+
+  let request = null
+
+  if (text.toLowerCase().startsWith('curl')) {
+    request = parseCurlCommand(text)
+  } else {
+    // 可能是多行 URL 或自定义格式
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+    if (lines.length === 0) {
+      ElMessage.warning('未找到有效 URL')
+      return
+    }
+
+    const first = lines[0]
+    // 检查是否是 "METHOD URL" 格式
+    const methodUrlMatch = first.match(/^(\w+)\s+(.+)$/)
+    let method = 'GET'
+    let url = first
+
+    if (methodUrlMatch) {
+      method = methodUrlMatch[1].toUpperCase()
+      url = methodUrlMatch[2]
+    }
+
+    const headers = []
+    let data = ''
+    let isHeaderSection = true
+
+    // 解析后续行
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i]
+
+      if (isHeaderSection) {
+        // 检查是否是请求头（包含冒号）
+        const headerMatch = line.match(/^([^:]+):\s*(.+)$/)
+        if (headerMatch) {
+          headers.push({
+            key: headerMatch[1].trim(),
+            value: headerMatch[2].trim()
+          })
+        } else if (line.startsWith('{') || line.startsWith('[')) {
+          // 可能是JSON数据
+          isHeaderSection = false
+          data = line
+        } else if (line) {
+          // 非空行，可能是请求体开始
+          isHeaderSection = false
+          data = line
+        }
+      } else {
+        // 请求体部分
+        data += (data ? '\n' : '') + line
+      }
+    }
+
+    request = {
+      method,
+      url,
+      headers: headers.length ? headers : [{ key: '', value: '' }],
+      data,
+      params: [{ key: '', value: '' }]
+    }
+  }
+
+  applyImportedRequest(request)
+}
+
+const pasteFromClipboard = async () => {
+  try {
+    const clipboard = await navigator.clipboard.readText()
+    if (!clipboard) {
+      ElMessage.warning('剪贴板内容为空')
+      return
+    }
+    bulkImportText.value = clipboard
+    ElMessage.success('已从剪贴板加载内容，可直接点击导入')
+  } catch (err) {
+    ElMessage.error('读取剪贴板失败，请在浏览器允许剪贴板权限后重试')
+  }
+}
+
 const downloadResponse = () => {
   if (!response.value) return
 
@@ -660,12 +1218,17 @@ const addCommonHeader = (key, value) => {
 const loadExample = () => {
   requestConfig.value = {
     method: 'GET',
-    url: 'https://jsonplaceholder.typicode.com/posts/1',
+    url: 'https://jsonplaceholder.typicode.com/posts',
     headers: [
       { key: 'Accept', value: 'application/json' },
       { key: 'Content-Type', value: 'application/json' }
     ],
-    data: ''
+    params: [
+      { key: 'userId', value: '1' },
+      { key: '_limit', value: '5' }
+    ],
+    data: '',
+    timeout: 30000
   }
   ElMessage.success('已加载示例配置')
 }
@@ -682,7 +1245,8 @@ const loadRestApiExample = () => {
       title: '测试标题',
       body: '测试内容',
       userId: 1
-    }, null, 2)
+    }, null, 2),
+    timeout: 30000
   }
   requestBodyType.value = 'json'
   ElMessage.success('已加载REST API示例')
@@ -705,7 +1269,8 @@ const loadGraphQLExample = () => {
           }
         }
       `
-    }, null, 2)
+    }, null, 2),
+    timeout: 30000
   }
   requestBodyType.value = 'json'
   ElMessage.success('已加载GraphQL示例')
@@ -729,11 +1294,14 @@ const loadWebhookExample = () => {
           email: 'zhangsan@example.com'
         }
       }
-    }, null, 2)
+    }, null, 2),
+    timeout: 30000
   }
   requestBodyType.value = 'json'
   ElMessage.success('已加载Webhook示例')
 }
+
+loadSavedRequests()
 </script>
 
 <style scoped>
@@ -756,20 +1324,45 @@ const loadWebhookExample = () => {
   align-items: center;
 }
 
-.headers-section, .form-data-section {
+.headers-section, .form-data-section, .params-section {
   width: 100%;
+  padding: 6px 0;
 }
 
-.header-item, .form-item {
+.header-item, .param-item, .form-item {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
 }
 
+.header-item .el-input, .param-item .el-input, .form-item .el-input {
+  flex: 1;
+  min-width: 120px;
+}
+
 .colon {
-  color: #606266;
+  color: #909399;
   font-weight: bold;
+  width: 16px;
+  text-align: center;
+}
+
+.params-section .el-button,
+.headers-section .el-button {
+  margin-top: 4px;
+  min-width: 120px;
+}
+
+.param-item .el-button,
+.header-item .el-button {
+  flex-shrink: 0;
+}
+
+.timeout-unit {
+  margin-left: 8px;
+  color: #606266;
+  font-size: 14px;
 }
 
 .request-body {
