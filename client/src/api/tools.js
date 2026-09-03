@@ -1,4 +1,6 @@
+import axios from 'axios'
 import request from './request'
+import { useUserStore } from '../stores/user'
 
 // JSON格式化工具API
 export const formatJson = (data) => {
@@ -216,4 +218,43 @@ export const getGenerationStatus = (taskId, type = 'image') => {
     data: { taskId, type },
     timeout: 30000
   })
+}
+
+export const getConvertDocumentStatus = () => {
+  return request({
+    url: '/tools/convert-document/status',
+    method: 'get'
+  })
+}
+
+export const convertDocument = async (formData) => {
+  const userStore = useUserStore()
+  try {
+    const response = await axios.post('/api/tools/convert-document', formData, {
+      timeout: 180000,
+      responseType: 'blob',
+      headers: userStore.token ? { Authorization: `Bearer ${userStore.token}` } : {}
+    })
+
+    const disposition = response.headers['content-disposition'] || ''
+    const utfMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i)
+    const plainMatch = disposition.match(/filename="?([^"]+)"?/i)
+    const fileName = decodeURIComponent(utfMatch?.[1] || plainMatch?.[1] || 'converted-file')
+    return { blob: response.data, fileName }
+  } catch (error) {
+    const data = error.response?.data
+    if (data instanceof Blob) {
+      const text = await data.text()
+      try {
+        const payload = JSON.parse(text)
+        throw new Error(payload.message || '文档转换失败')
+      } catch (parseError) {
+        if (parseError instanceof SyntaxError) {
+          throw new Error(text || '文档转换失败')
+        }
+        throw parseError
+      }
+    }
+    throw new Error(error.message || '文档转换失败')
+  }
 }

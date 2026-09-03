@@ -39,4 +39,11 @@ router.post('/generate-image', toolsController.generateImageByText);
 router.post('/generate-video', toolsController.generateVideoByText);
 router.post('/generation-status', toolsController.getGenerationStatus);
 
+router.get('/convert-document/status', toolsController.getConvertDocumentStatus);
+router.post(
+  '/convert-document',
+  toolsController.uploadConvertDocument.bind(toolsController),
+  toolsController.convertDocument.bind(toolsController)
+);
+
 module.exports = router;

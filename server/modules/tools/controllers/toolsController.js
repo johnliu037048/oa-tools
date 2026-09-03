@@ -1,5 +1,37 @@
 const axios = require('axios');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
+const {
+  ALLOWED_SOURCES,
+  decodeFileName,
+  validateConversion,
+  convertWithLibreOffice,
+  findLibreOffice
+} = require('../services/documentConvert');
+
+const convertUploadDir = path.join(__dirname, '../../../uploads/doc-convert');
+const convertUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      fs.mkdirSync(convertUploadDir, { recursive: true });
+      cb(null, convertUploadDir);
+    },
+    filename: (req, file, cb) => {
+      cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(decodeFileName(file.originalname)).toLowerCase()}`);
+    }
+  }),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(decodeFileName(file.originalname)).toLowerCase();
+    if (ALLOWED_SOURCES.includes(ext)) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('仅支持 Word、PPT、PDF、PNG、JPG'));
+  }
+});
 
 class ToolsController {
   // JSON格式化工具
@@ -595,6 +627,63 @@ class ToolsController {
         message: '状态查询失败', 
         error: error.message 
       });
+    }
+  }
+
+  getConvertDocumentStatus(req, res) {
+    const bin = findLibreOffice();
+    res.json({
+      success: true,
+      ready: Boolean(bin),
+      engine: bin ? 'LibreOffice' : null,
+      message: bin
+        ? 'LibreOffice 已就绪'
+        : '未检测到 LibreOffice。请安装后重启服务，或设置 LIBREOFFICE_PATH'
+    });
+  }
+
+  uploadConvertDocument(req, res, next) {
+    convertUpload.single('file')(req, res, error => {
+      if (!error) {
+        next();
+        return;
+      }
+      res.status(400).json({ message: error.message || '文件上传失败' });
+    });
+  }
+
+  async convertDocument(req, res) {
+    const workDir = path.join(convertUploadDir, `job-${Date.now()}-${Math.round(Math.random() * 1e9)}`);
+    const uploadedPath = req.file?.path;
+
+    try {
+      const target = String(req.body.target || '').toLowerCase().replace(/^\./, '');
+      if (!req.file) {
+        return res.status(400).json({ message: '请上传文件' });
+      }
+      if (!['pdf', 'docx', 'pptx'].includes(target)) {
+        return res.status(400).json({ message: '目标格式仅支持 pdf、docx、pptx' });
+      }
+
+      const originalName = decodeFileName(req.file.originalname);
+      const sourceExt = path.extname(originalName).toLowerCase();
+      validateConversion(sourceExt, target);
+
+      const outputDir = path.join(workDir, 'output');
+      const profileDir = path.join(workDir, 'profile');
+      fs.mkdirSync(workDir, { recursive: true });
+
+      const outputPath = await convertWithLibreOffice(uploadedPath, outputDir, target, profileDir);
+      const downloadName = `${path.basename(originalName, sourceExt)}.${target}`;
+
+      res.download(outputPath, downloadName, () => {
+        fs.rm(workDir, { recursive: true, force: true }, () => {});
+        fs.rm(uploadedPath, { force: true }, () => {});
+      });
+    } catch (error) {
+      fs.rm(workDir, { recursive: true, force: true }, () => {});
+      if (uploadedPath) fs.rm(uploadedPath, { force: true }, () => {});
+      res.status(400).json({ message: error.message || '文档转换失败' });
     }
   }
 }
