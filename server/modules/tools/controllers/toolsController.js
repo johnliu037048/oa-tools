@@ -388,6 +388,215 @@ class ToolsController {
       res.status(500).json({ message: '进制转换失败', error: error.message });
     }
   }
+
+  // DeepSeek API 调用 - 生成图片
+  async generateImageByText(req, res) {
+    try {
+      const { 
+        prompt, 
+        model = 'deepseek-vision',
+        width = 1024,
+        height = 1024,
+        quality = 'hd',
+        style = 'natural'
+      } = req.body;
+
+      if (!prompt) {
+        return res.status(400).json({ message: '缺少图片描述文字' });
+      }
+
+      // 获取 DeepSeek API 配置
+      const deepseekApiKey = process.env.DEEPSEEK_API_KEY || '';
+      const deepseekApiUrl = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/v1/images/generations';
+
+      if (!deepseekApiKey) {
+        return res.status(400).json({ 
+          message: 'DeepSeek API Key 未配置',
+          hint: '请设置 DEEPSEEK_API_KEY 环境变量'
+        });
+      }
+
+      try {
+        const response = await axios.post(
+          deepseekApiUrl,
+          {
+            prompt,
+            model,
+            size: `${width}x${height}`,
+            quality,
+            style
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${deepseekApiKey}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 60000
+          }
+        );
+
+        res.json({
+          success: true,
+          data: {
+            imageUrl: response.data.data?.[0]?.url,
+            imageB64: response.data.data?.[0]?.b64_json,
+            revised_prompt: response.data.data?.[0]?.revised_prompt,
+            model,
+            parameters: {
+              width,
+              height,
+              quality,
+              style
+            }
+          },
+          timestamp: new Date().toISOString()
+        });
+      } catch (apiError) {
+        res.status(500).json({
+          success: false,
+          message: 'DeepSeek API 调用失败',
+          error: apiError.response?.data?.error?.message || apiError.message,
+          statusCode: apiError.response?.status
+        });
+      }
+    } catch (error) {
+      res.status(500).json({ 
+        message: '图片生成失败', 
+        error: error.message 
+      });
+    }
+  }
+
+  // DeepSeek API 调用 - 生成视频
+  async generateVideoByText(req, res) {
+    try {
+      const { 
+        prompt, 
+        model = 'deepseek-video',
+        duration = 5,
+        fps = 24,
+        resolution = '1080p',
+        quality = 'hd'
+      } = req.body;
+
+      if (!prompt) {
+        return res.status(400).json({ message: '缺少视频描述文字' });
+      }
+
+      // 获取 DeepSeek API 配置
+      const deepseekApiKey = process.env.DEEPSEEK_API_KEY || '';
+      const deepseekApiUrl = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/v1/videos/generations';
+
+      if (!deepseekApiKey) {
+        return res.status(400).json({ 
+          message: 'DeepSeek API Key 未配置',
+          hint: '请设置 DEEPSEEK_API_KEY 环境变量'
+        });
+      }
+
+      try {
+        const response = await axios.post(
+          deepseekApiUrl,
+          {
+            prompt,
+            model,
+            duration,
+            fps,
+            resolution,
+            quality
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${deepseekApiKey}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 120000
+          }
+        );
+
+        res.json({
+          success: true,
+          data: {
+            videoUrl: response.data.data?.[0]?.url,
+            videoId: response.data.data?.[0]?.id,
+            status: response.data.data?.[0]?.status,
+            revised_prompt: response.data.data?.[0]?.revised_prompt,
+            model,
+            parameters: {
+              duration,
+              fps,
+              resolution,
+              quality
+            }
+          },
+          timestamp: new Date().toISOString(),
+          message: '视频生成已提交，请等待处理'
+        });
+      } catch (apiError) {
+        res.status(500).json({
+          success: false,
+          message: 'DeepSeek API 调用失败',
+          error: apiError.response?.data?.error?.message || apiError.message,
+          statusCode: apiError.response?.status
+        });
+      }
+    } catch (error) {
+      res.status(500).json({ 
+        message: '视频生成失败', 
+        error: error.message 
+      });
+    }
+  }
+
+  // 获取生成任务状态
+  async getGenerationStatus(req, res) {
+    try {
+      const { taskId, type = 'image' } = req.body;
+
+      if (!taskId) {
+        return res.status(400).json({ message: '缺少任务ID' });
+      }
+
+      const deepseekApiKey = process.env.DEEPSEEK_API_KEY || '';
+      const endpoint = type === 'video' ? 'videos' : 'images';
+      const deepseekApiUrl = `https://api.deepseek.com/v1/${endpoint}/${taskId}`;
+
+      if (!deepseekApiKey) {
+        return res.status(400).json({ 
+          message: 'DeepSeek API Key 未配置'
+        });
+      }
+
+      try {
+        const response = await axios.get(
+          deepseekApiUrl,
+          {
+            headers: {
+              'Authorization': `Bearer ${deepseekApiKey}`
+            },
+            timeout: 30000
+          }
+        );
+
+        res.json({
+          success: true,
+          data: response.data,
+          timestamp: new Date().toISOString()
+        });
+      } catch (apiError) {
+        res.status(500).json({
+          success: false,
+          message: '获取任务状态失败',
+          error: apiError.message
+        });
+      }
+    } catch (error) {
+      res.status(500).json({ 
+        message: '状态查询失败', 
+        error: error.message 
+      });
+    }
+  }
 }
 
 module.exports = new ToolsController();

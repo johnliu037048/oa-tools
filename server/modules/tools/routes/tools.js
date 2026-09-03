@@ -34,4 +34,9 @@ router.post('/sha-hash', toolsController.shaHash);
 // 进制转换工具
 router.post('/base-converter', toolsController.baseConverter);
 
+// AI 生成工具 - DeepSeek API
+router.post('/generate-image', toolsController.generateImageByText);
+router.post('/generate-video', toolsController.generateVideoByText);
+router.post('/generation-status', toolsController.getGenerationStatus);
+
 module.exports = router;

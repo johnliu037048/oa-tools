@@ -171,3 +171,49 @@ export const baseConverter = (number, fromBase, toBase) => {
     data: { number, fromBase, toBase }
   })
 }
+
+// ========== AI 生成工具 - DeepSeek API ==========
+
+// 生成图片 API
+export const generateImage = (params) => {
+  return request({
+    url: '/tools/generate-image',
+    method: 'post',
+    data: {
+      prompt: params.prompt,
+      model: params.model || 'deepseek-vision',
+      width: params.width || 1024,
+      height: params.height || 1024,
+      quality: params.quality || 'hd',
+      style: params.style || 'natural'
+    },
+    timeout: 60000
+  })
+}
+
+// 生成视频 API
+export const generateVideo = (params) => {
+  return request({
+    url: '/tools/generate-video',
+    method: 'post',
+    data: {
+      prompt: params.prompt,
+      model: params.model || 'deepseek-video',
+      duration: params.duration || 5,
+      fps: params.fps || 24,
+      resolution: params.resolution || '1080p',
+      quality: params.quality || 'hd'
+    },
+    timeout: 120000
+  })
+}
+
+// 获取生成任务状态 API
+export const getGenerationStatus = (taskId, type = 'image') => {
+  return request({
+    url: '/tools/generation-status',
+    method: 'post',
+    data: { taskId, type },
+    timeout: 30000
+  })
+}
