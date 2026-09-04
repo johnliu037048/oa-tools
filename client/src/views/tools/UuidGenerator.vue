@@ -14,8 +14,15 @@
               <el-form-item label="生成数量">
                 <el-input-number v-model="count" :min="1" :max="5000" style="width: 100%;" />
               </el-form-item>
-              <el-form-item label="去掉横杆">
+              <el-form-item label="去掉横杠">
                 <el-switch v-model="removeDashes" />
+              </el-form-item>
+              <el-form-item label="大小写">
+                <el-radio-group v-model="caseMode">
+                  <el-radio label="upper">大写</el-radio>
+                  <el-radio label="lower">小写</el-radio>
+                  <el-radio label="none">不转换</el-radio>
+                </el-radio-group>
               </el-form-item>
               <el-form-item label="输出模式">
                 <el-radio-group v-model="formatType">
@@ -73,7 +80,8 @@ import { ElMessage } from 'element-plus'
 import { Document } from '@element-plus/icons-vue'
 
 const count = ref(10)
-const removeDashes = ref(false)
+const removeDashes = ref(true)
+const caseMode = ref('upper')
 const formatType = ref('text')
 const output = ref('')
 const message = ref('')
@@ -107,6 +115,11 @@ const generateUuids = () => {
     let u = generateUUIDOne()
     if (removeDashes.value) {
       u = u.replace(/-/g, '')
+    }
+    if (caseMode.value === 'upper') {
+      u = u.toUpperCase()
+    } else if (caseMode.value === 'lower') {
+      u = u.toLowerCase()
     }
     uuids.push(u)
   }
