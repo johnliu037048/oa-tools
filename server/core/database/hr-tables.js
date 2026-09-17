@@ -207,6 +207,8 @@ const createHRTables = () => {
 // 执行初始化
 const initHRDatabase = () => {
   createHRTables();
+  const { runHRMigrations } = require('./hr-migrations');
+  runHRMigrations();
   // 注意：示例数据由 system-init.js 统一插入，这里只创建表结构
 };
 

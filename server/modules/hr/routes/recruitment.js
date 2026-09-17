@@ -13,6 +13,13 @@ router.post('/positions', [
   body('org_id').isInt().withMessage('组织ID必须是数字')
 ], recruitmentController.createPosition);
 
+// 更新招聘职位
+router.put('/positions/:id', [
+  body('title').notEmpty().withMessage('职位标题不能为空'),
+  body('position_id').isInt().withMessage('岗位ID必须是数字'),
+  body('org_id').isInt().withMessage('组织ID必须是数字')
+], recruitmentController.updatePosition);
+
 // 删除招聘职位
 router.delete('/positions/:id', recruitmentController.deletePosition);
 

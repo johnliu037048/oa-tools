@@ -20,6 +20,15 @@ export const createRecruitmentPosition = (data) => {
   })
 }
 
+// 更新招聘职位
+export const updateRecruitmentPosition = (id, data) => {
+  return request({
+    url: `/hr/recruitment/positions/${id}`,
+    method: 'put',
+    data
+  })
+}
+
 // 删除招聘职位
 export const deleteRecruitmentPosition = (id) => {
   return request({
@@ -234,7 +243,35 @@ export const uploadTalentFile = (formData) => {
   return request({
     url: '/hr/talent-pool/talents/upload',
     method: 'post',
-    data: formData
+    data: formData,
+    timeout: 120000
+  })
+}
+
+// AI 初筛（规则预筛 + LLM 评分）
+export const aiScreenTalent = (id, data = {}) => {
+  return request({
+    url: `/hr/talent-pool/talents/${id}/ai-screen`,
+    method: 'post',
+    data,
+    timeout: 120000
+  })
+}
+
+export const batchAiScreenTalents = (data) => {
+  return request({
+    url: '/hr/talent-pool/talents/batch-ai-screen',
+    method: 'post',
+    data,
+    timeout: 300000
+  })
+}
+
+export const reparseTalentResume = (id) => {
+  return request({
+    url: `/hr/talent-pool/talents/${id}/reparse-resume`,
+    method: 'post',
+    timeout: 120000
   })
 }
 
@@ -278,7 +315,12 @@ export const convertToOnboarding = (id, data) => {
   return request({
     url: `/hr/talent-pool/talents/${id}/convert-to-onboarding`,
     method: 'post',
-    data
+    data: {
+      ...data,
+      position_id: Number(data.position_id),
+      org_id: Number(data.org_id)
+    },
+    timeout: 30000
   })
 }
 

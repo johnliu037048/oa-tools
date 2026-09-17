@@ -11,15 +11,6 @@
             @keyup.enter="loadData"
           />
         </el-form-item>
-        <el-form-item label="来源">
-          <el-select v-model="searchForm.source" placeholder="选择来源" clearable
-            style="width: 200px"
-            :popper-append-to-body="false">
-            <el-option label="手动添加" value="manual" />
-            <el-option label="文件导入" value="import" />
-            <el-option label="网站爬取" value="crawl" />
-          </el-select>
-        </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="searchForm.status" placeholder="选择状态" clearable
             style="width: 200px"
@@ -29,68 +20,132 @@
             <el-option label="已拒绝" value="3" />
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="loadData">搜索</el-button>
+        <el-form-item class="search-actions">
+          <el-button type="primary" @click="loadData">查询</el-button>
           <el-button @click="resetSearch">重置</el-button>
         </el-form-item>
       </el-form>
     </div>
 
-    <!-- 操作按钮 -->
-    <div class="button-group">
-      <el-button type="primary" @click="showCreateDialog = true">
-        <el-icon><Plus /></el-icon>
-        手动添加
-      </el-button>
-      <el-button type="success" @click="showUploadDialog = true">
-        <el-icon><Upload /></el-icon>
-        文件导入
-      </el-button>
-      <el-button type="warning" @click="showCrawlDialog = true">
-        <el-icon><Link /></el-icon>
-        网站爬取
-      </el-button>
+    <div class="action-card">
+      <div class="action-card__left">
+        <el-button plain @click="openCreateDialog">
+          <el-icon><Plus /></el-icon>
+          手动添加
+        </el-button>
+        <el-button type="primary" @click="showUploadDialog = true">
+          <el-icon><Upload /></el-icon>
+          文件导入
+        </el-button>
+        <el-button plain @click="showCrawlDialog = true">
+          <el-icon><Link /></el-icon>
+          网站爬取
+        </el-button>
+      </div>
+      <el-segmented
+        v-model="searchForm.source"
+        :options="sourceSegmentOptions"
+        @change="onSourceTabChange"
+      />
+    </div>
+
+    <div class="ai-screen-card">
+      <div class="ai-screen-card__title">岗位匹配打分</div>
+      <div class="ai-screen-card__body">
+        <el-select
+          v-model="screeningBar.recruitment_position_id"
+          placeholder="选择对标招聘职位"
+          filterable
+          clearable
+          style="width: 280px"
+          @change="persistScreeningPosition"
+        >
+          <el-option
+            v-for="position in allPositions"
+            :key="position.id"
+            :label="position.title"
+            :value="position.id"
+          />
+        </el-select>
+        <el-button
+          type="primary"
+          :loading="batchScreening"
+          :disabled="!screeningBar.recruitment_position_id"
+          @click="runBatchScreen(false)"
+        >
+          全部打分
+        </el-button>
+        <el-button
+          plain
+          :loading="batchScreening"
+          :disabled="!screeningBar.recruitment_position_id"
+          @click="runBatchScreen(true)"
+        >
+          仅未评分
+        </el-button>
+        <el-checkbox v-model="screeningBar.autoOnImport">导入后自动打分</el-checkbox>
+        <el-checkbox v-model="screeningBar.autoOnEnter">进入页面自动打分（未评分）</el-checkbox>
+      </div>
+      <p class="ai-screen-card__hint">打分在列表外统一执行，列表仅展示匹配度结果。</p>
     </div>
 
     <!-- 人才列表 -->
     <div class="table-container">
-      <el-table :data="talents" v-loading="loading" stripe border
-        table-layout="fixed">
-        <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column prop="email" label="邮箱" width="180" />
-        <el-table-column prop="phone" label="手机号" width="120" />
-        <el-table-column prop="education" label="学历" width="100" />
-        <el-table-column prop="experience_years" label="工作经验" width="100">
+      <el-table :data="talents" v-loading="loading" stripe border height="520">
+        <el-table-column prop="name" label="姓名" min-width="90" show-overflow-tooltip />
+        <el-table-column prop="phone" label="手机号" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="email" label="邮箱" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="education" label="学历" min-width="80" />
+        <el-table-column prop="experience_years" label="工作年限" min-width="90">
           <template #default="{ row }">
-            {{ row.experience_years ? `${row.experience_years}年` : '-' }}
+            {{ row.experience_years != null ? `${row.experience_years}年` : '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="current_position" label="当前职位" width="150" />
-        <el-table-column prop="expected_salary" label="期望薪资" width="120" />
-        <el-table-column prop="source" label="来源" width="100">
+        <el-table-column prop="current_position" label="当前职位" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="expected_salary" label="期望薪资" min-width="100" show-overflow-tooltip />
+        <el-table-column prop="source" label="来源" min-width="100">
           <template #default="{ row }">
-            <el-tag :type="getSourceType(row.source)">
+            <el-tag size="small" :type="getSourceType(row.source)">
               {{ getSourceText(row.source) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="recruitment_position_title" label="关联职位" width="150" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column label="AI 匹配" min-width="100">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">
+            <el-tag v-if="row.ai_match_score != null" size="small" :type="getAiScoreType(row.ai_match_score)">
+              {{ formatAiScore(row.ai_match_score) }}
+            </el-tag>
+            <span v-else class="text-muted">未评分</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="recruitment_position_title" label="关联职位" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="status" label="状态" min-width="90">
+          <template #default="{ row }">
+            <el-tag size="small" :type="getStatusType(row.status)">
               {{ getStatusText(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="180" />
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column prop="created_at" label="创建时间" min-width="160" show-overflow-tooltip />
+        <el-table-column label="操作" width="108" fixed="right" align="center" class-name="col-actions">
           <template #default="{ row }">
-            <div class="operation-buttons">
-              <el-button size="small" @click="viewTalent(row)">查看</el-button>
-              <el-button size="small" type="primary" @click="editTalent(row)">编辑</el-button>
-              <el-button size="small" type="success" @click="linkRecruitment(row)">关联职位</el-button>
-              <el-button size="small" type="warning" @click="convertOnboarding(row)">转为入职</el-button>
-              <el-button size="small" type="danger" @click="deleteTalentRow(row)">删除</el-button>
+            <div class="table-row-actions">
+              <el-dropdown trigger="click" @command="(cmd) => handleRowCommand(cmd, row)">
+                <el-button size="small" type="primary" plain>
+                  操作
+                  <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="view">查看详情</el-dropdown-item>
+                    <el-dropdown-item command="edit">编辑</el-dropdown-item>
+                    <el-dropdown-item command="reparse" divided>重新解析简历</el-dropdown-item>
+                    <el-dropdown-item command="link">关联职位</el-dropdown-item>
+                    <el-dropdown-item command="onboard">转为入职</el-dropdown-item>
+                    <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
             </div>
           </template>
         </el-table-column>
@@ -114,8 +169,12 @@
     <el-dialog
       v-model="showCreateDialog"
       :title="editingTalent ? '编辑人才' : '手动添加人才'"
-      width="800px"
+      width="860px"
+      class="talent-form-dialog"
+      destroy-on-close
+      @closed="resetForm"
     >
+      <div class="dialog-scroll-body">
       <el-form :model="talentForm" :rules="talentRules" ref="talentFormRef" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12">
@@ -147,7 +206,10 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="年龄">
-              <el-input-number v-model="talentForm.age" :min="18" :max="65" style="width: 100%" />
+              <div class="number-with-unit">
+                <el-input-number v-model="talentForm.age" :min="18" :max="65" controls-position="right" />
+                <span class="number-unit">岁</span>
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -165,7 +227,10 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="工作经验">
-              <el-input-number v-model="talentForm.experience_years" :min="0" :max="50" style="width: 100%" />
+              <div class="number-with-unit">
+                <el-input-number v-model="talentForm.experience_years" :min="0" :max="50" controls-position="right" />
+                <span class="number-unit">年</span>
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -219,6 +284,7 @@
           />
         </el-form-item>
       </el-form>
+      </div>
       <template #footer>
         <el-button @click="showCreateDialog = false">取消</el-button>
         <el-button type="primary" @click="saveTalent">保存</el-button>
@@ -249,7 +315,12 @@
           </el-upload>
         </el-form-item>
         <el-form-item label="关联职位" v-if="allPositions.length > 0">
-          <el-select v-model="uploadForm.recruitment_position_id" placeholder="选择招聘职位（可选）" style="width: 100%" clearable>
+          <el-select
+            v-model="uploadForm.recruitment_position_id"
+            placeholder="选择招聘职位（建议必选，用于自动打分）"
+            style="width: 100%"
+            clearable
+          >
             <el-option
               v-for="position in allPositions"
               :key="position.id"
@@ -257,6 +328,9 @@
               :value="position.id"
             />
           </el-select>
+        </el-form-item>
+        <el-form-item label="自动打分">
+          <el-switch v-model="uploadForm.auto_screen" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -295,40 +369,91 @@
       </template>
     </el-dialog>
 
-    <!-- 查看人才详情对话框 -->
     <el-dialog
       v-model="showDetailDialog"
-      title="人才详情"
-      width="800px"
+      width="920px"
+      class="talent-detail-dialog"
+      :show-close="true"
     >
-      <el-descriptions :column="2" border v-if="currentTalent">
-        <el-descriptions-item label="姓名">{{ currentTalent.name }}</el-descriptions-item>
-        <el-descriptions-item label="邮箱">{{ currentTalent.email || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="手机号">{{ currentTalent.phone || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="性别">{{ currentTalent.gender || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="年龄">{{ currentTalent.age || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="学历">{{ currentTalent.education || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="工作经验">{{ currentTalent.experience_years ? `${currentTalent.experience_years}年` : '-' }}</el-descriptions-item>
-        <el-descriptions-item label="期望薪资">{{ currentTalent.expected_salary || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="当前职位">{{ currentTalent.current_position || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="当前公司">{{ currentTalent.current_company || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="来源">
-          <el-tag :type="getSourceType(currentTalent.source)">
-            {{ getSourceText(currentTalent.source) }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="getStatusType(currentTalent.status)">
-            {{ getStatusText(currentTalent.status) }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="关联职位" :span="2">{{ currentTalent.recruitment_position_title || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="技能" :span="2">{{ currentTalent.skills || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="工作经历" :span="2">{{ currentTalent.work_experience || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="教育背景" :span="2">{{ currentTalent.education_background || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ currentTalent.notes || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间" :span="2">{{ currentTalent.created_at }}</el-descriptions-item>
-      </el-descriptions>
+      <template #header>
+        <div class="detail-header" v-if="currentTalent">
+          <div class="detail-header__main">
+            <h3>{{ currentTalent.name }}</h3>
+            <p class="detail-header__sub">
+              {{ currentTalent.job_intention || currentTalent.current_position || '求职意向未填' }}
+              · {{ currentTalent.expected_city || '城市未定' }}
+              · {{ currentTalent.expected_salary || '薪资面议' }}
+            </p>
+          </div>
+          <div class="detail-header__tags">
+            <el-tag size="small">{{ getSourceText(currentTalent.source) }}</el-tag>
+            <el-tag size="small" :type="getStatusType(currentTalent.status)">{{ getStatusText(currentTalent.status) }}</el-tag>
+            <el-tag v-if="currentTalent.ai_match_score != null" size="small" :type="getAiScoreType(currentTalent.ai_match_score)">
+              匹配 {{ formatAiScore(currentTalent.ai_match_score) }}
+            </el-tag>
+          </div>
+        </div>
+      </template>
+
+      <div v-if="currentTalent" class="detail-body">
+        <section class="detail-section">
+          <h4>基本信息</h4>
+          <div class="detail-grid">
+            <div><span>手机</span>{{ currentTalent.phone || '-' }}</div>
+            <div><span>邮箱</span>{{ currentTalent.email || '-' }}</div>
+            <div><span>性别</span>{{ currentTalent.gender || '-' }}</div>
+            <div><span>年龄</span>{{ currentTalent.age ? `${currentTalent.age}岁` : '-' }}</div>
+            <div><span>学历</span>{{ currentTalent.education || '-' }}</div>
+            <div><span>工作年限</span>{{ currentTalent.experience_years != null ? `${currentTalent.experience_years}年` : '-' }}</div>
+            <div><span>当前公司</span>{{ currentTalent.current_company || '-' }}</div>
+            <div><span>当前职位</span>{{ currentTalent.current_position || '-' }}</div>
+            <div><span>关联招聘</span>{{ currentTalent.recruitment_position_title || '-' }}</div>
+            <div><span>入库时间</span>{{ currentTalent.created_at || '-' }}</div>
+          </div>
+        </section>
+
+        <section v-if="currentTalent.personal_advantages" class="detail-section">
+          <h4>个人优势</h4>
+          <p class="detail-text">{{ currentTalent.personal_advantages }}</p>
+        </section>
+
+        <section v-if="currentTalent.skills" class="detail-section">
+          <h4>专业技能</h4>
+          <div v-if="skillTags.length" class="skill-tags">
+            <el-tag v-for="(tag, i) in skillTags" :key="i" size="small" effect="plain">{{ tag }}</el-tag>
+          </div>
+          <p v-else class="detail-text">{{ currentTalent.skills }}</p>
+        </section>
+
+        <section v-if="currentTalent.work_experience" class="detail-section">
+          <h4>工作经历</h4>
+          <pre class="detail-pre">{{ currentTalent.work_experience }}</pre>
+        </section>
+
+        <section v-if="currentTalent.project_experience" class="detail-section">
+          <h4>项目经历</h4>
+          <pre class="detail-pre">{{ currentTalent.project_experience }}</pre>
+        </section>
+
+        <section v-if="currentTalent.education_background" class="detail-section">
+          <h4>教育经历</h4>
+          <p class="detail-text">{{ currentTalent.education_background }}</p>
+        </section>
+
+        <section v-if="currentTalent.certificates" class="detail-section">
+          <h4>资格证书</h4>
+          <p class="detail-text">{{ currentTalent.certificates }}</p>
+        </section>
+
+        <section v-if="currentTalent.ai_match_summary || aiScreenDetail" class="detail-section detail-section--highlight">
+          <h4>岗位匹配评估</h4>
+          <p class="detail-text">{{ currentTalent.ai_match_summary || aiScreenDetail?.summary }}</p>
+          <div v-if="aiScreenDetail" class="skill-tags">
+            <el-tag v-for="(s, i) in aiScreenDetail.matched_skills || []" :key="'m'+i" size="small" type="success">{{ s }}</el-tag>
+            <el-tag v-for="(g, i) in aiScreenDetail.gaps || []" :key="'g'+i" size="small" type="warning">{{ g }}</el-tag>
+          </div>
+        </section>
+      </div>
     </el-dialog>
 
     <!-- 关联招聘职位对话框 -->
@@ -419,9 +544,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Upload, Link } from '@element-plus/icons-vue'
+import { Plus, Upload, Link, ArrowDown } from '@element-plus/icons-vue'
 import { 
   getTalents, 
   createTalent, 
@@ -430,7 +555,9 @@ import {
   uploadTalentFile,
   crawlJobSite,
   linkToRecruitment,
-  convertToOnboarding
+  convertToOnboarding,
+  batchAiScreenTalents,
+  reparseTalentResume
 } from '@/api/hr'
 import { getRecruitmentPositions } from '@/api/hr'
 import { getAllPositions } from '@/api/position'
@@ -454,6 +581,30 @@ const uploading = ref(false)
 const crawling = ref(false)
 const uploadRef = ref()
 const selectedFile = ref(null)
+const aiScreenDetail = ref(null)
+const batchScreening = ref(false)
+const autoBatchRanThisSession = ref(false)
+
+const SCREEN_POS_KEY = 'talent_pool_screen_position_id'
+
+const sourceSegmentOptions = [
+  { label: '全部', value: '' },
+  { label: '手动添加', value: 'manual' },
+  { label: '文件导入', value: 'import' },
+  { label: '网站爬取', value: 'crawl' }
+]
+
+const screeningBar = reactive({
+  recruitment_position_id: null,
+  autoOnImport: true,
+  autoOnEnter: true
+})
+
+const skillTags = computed(() => {
+  const raw = currentTalent.value?.skills
+  if (!raw) return []
+  return raw.split(/[,，;；\n]/).map((s) => s.trim()).filter(Boolean).slice(0, 24)
+})
 
 // 搜索表单
 const searchForm = reactive({
@@ -489,7 +640,8 @@ const talentForm = reactive({
 
 // 上传表单
 const uploadForm = reactive({
-  recruitment_position_id: null
+  recruitment_position_id: null,
+  auto_screen: true
 })
 
 // 爬取表单
@@ -551,6 +703,83 @@ const getStatusText = (status) => {
   return texts[status] || '待处理'
 }
 
+const formatAiScore = (score) => {
+  const n = Number(score)
+  if (Number.isNaN(n)) return '-'
+  return `${Math.round(n * 100)}%`
+}
+
+const getAiScoreType = (score) => {
+  const n = Number(score)
+  if (n >= 0.75) return 'success'
+  if (n >= 0.5) return 'warning'
+  return 'danger'
+}
+
+const onSourceTabChange = () => {
+  pagination.page = 1
+  loadData()
+}
+
+const openCreateDialog = () => {
+  editingTalent.value = null
+  resetForm()
+  showCreateDialog.value = true
+}
+
+const persistScreeningPosition = () => {
+  if (screeningBar.recruitment_position_id) {
+    localStorage.setItem(SCREEN_POS_KEY, String(screeningBar.recruitment_position_id))
+  }
+}
+
+const runBatchScreen = async (onlyUnscored) => {
+  if (!screeningBar.recruitment_position_id) {
+    ElMessage.warning('请先选择对标招聘职位')
+    return
+  }
+  batchScreening.value = true
+  try {
+    await batchAiScreenTalents({
+      recruitment_position_id: screeningBar.recruitment_position_id,
+      only_unscored: onlyUnscored
+    })
+    await loadData()
+  } catch (_) {
+    // handled by interceptor
+  } finally {
+    batchScreening.value = false
+  }
+}
+
+const maybeAutoBatchOnEnter = async () => {
+  if (autoBatchRanThisSession.value) return
+  if (!screeningBar.autoOnEnter || !screeningBar.recruitment_position_id) return
+  const hasUnscored = talents.value.some((t) => t.ai_match_score == null)
+  if (!hasUnscored) return
+  autoBatchRanThisSession.value = true
+  await runBatchScreen(true)
+}
+
+const handleRowCommand = async (command, row) => {
+  if (command === 'view') {
+    viewTalent(row)
+  } else if (command === 'edit') {
+    editTalent(row)
+  } else if (command === 'reparse') {
+    try {
+      await reparseTalentResume(row.id)
+      await loadData()
+    } catch (_) {}
+  } else if (command === 'link') {
+    linkRecruitment(row)
+  } else if (command === 'onboard') {
+    convertOnboarding(row)
+  } else if (command === 'delete') {
+    deleteTalentRow(row)
+  }
+}
+
 // 加载数据
 const loadData = async () => {
   loading.value = true
@@ -563,6 +792,7 @@ const loadData = async () => {
     const response = await getTalents(params)
     talents.value = response.data
     pagination.total = response.total
+    await maybeAutoBatchOnEnter()
   } catch (error) {
     ElMessage.error('加载数据失败')
   } finally {
@@ -662,6 +892,14 @@ const deleteTalentRow = async (row) => {
 // 查看人才详情
 const viewTalent = (row) => {
   currentTalent.value = row
+  aiScreenDetail.value = null
+  if (row.ai_screen_result) {
+    try {
+      aiScreenDetail.value = JSON.parse(row.ai_screen_result)
+    } catch (_) {
+      aiScreenDetail.value = null
+    }
+  }
   showDetailDialog.value = true
 }
 
@@ -681,15 +919,21 @@ const handleUpload = async () => {
   try {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
-    if (uploadForm.recruitment_position_id) {
-      formData.append('recruitment_position_id', uploadForm.recruitment_position_id)
+    const positionId = uploadForm.recruitment_position_id || screeningBar.recruitment_position_id
+    if (positionId) {
+      formData.append('recruitment_position_id', positionId)
+      formData.append('screen_recruitment_position_id', positionId)
     }
+    formData.append('auto_screen', uploadForm.auto_screen ? 'true' : 'false')
 
-    await uploadTalentFile(formData)
-    ElMessage.success('上传并解析成功')
+    const res = await uploadTalentFile(formData)
+    if (res.parsedData?.name) {
+      ElMessage.success(`解析成功：${res.parsedData.name}`)
+    }
     showUploadDialog.value = false
     selectedFile.value = null
-    uploadForm.recruitment_position_id = null
+    uploadForm.recruitment_position_id = screeningBar.recruitment_position_id
+    uploadForm.auto_screen = screeningBar.autoOnImport
     if (uploadRef.value) {
       uploadRef.value.clearFiles()
     }
@@ -787,9 +1031,13 @@ const loadBaseData = async () => {
 }
 
 // 组件挂载时加载数据
-onMounted(() => {
-  loadData()
-  loadBaseData()
+onMounted(async () => {
+  const saved = localStorage.getItem(SCREEN_POS_KEY)
+  if (saved) {
+    screeningBar.recruitment_position_id = parseInt(saved, 10)
+  }
+  await loadBaseData()
+  await loadData()
 })
 </script>
 
@@ -807,8 +1055,83 @@ onMounted(() => {
   border: 1px solid #f7fafc;
 }
 
-.button-group {
-  margin-bottom: 24px;
+.search-actions {
+  margin-left: 8px;
+}
+
+.action-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+}
+
+.action-card__left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai-screen-card {
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  background: #f5f8ff;
+  border: 1px solid #d9e5ff;
+  border-radius: 8px;
+}
+
+.ai-screen-card__title {
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 12px;
+}
+
+.ai-screen-card__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.ai-screen-card__hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #909399;
+}
+
+.text-muted {
+  color: #a0aec0;
+  font-size: 12px;
+}
+
+.dialog-scroll-body {
+  max-height: 62vh;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.ai-screen-panel {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.ai-screen-panel h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #4a5568;
+}
+
+.tag-gap {
+  margin: 4px 6px 0 0;
 }
 
 .table-container {
@@ -849,136 +1172,139 @@ onMounted(() => {
   text-overflow: ellipsis;
 }
 
+:deep(.el-table td.col-actions .cell) {
+  overflow: visible;
+  text-overflow: clip;
+  padding: 8px 6px;
+}
+
+.table-row-actions {
+  display: inline-flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.table-row-actions .el-button {
+  min-width: 72px;
+}
+
+.number-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.number-with-unit .el-input-number {
+  flex: 1;
+}
+
+.number-unit {
+  color: #606266;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.talent-pool-management :deep(.table-row-actions .el-button--primary.is-plain) {
+  color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-5);
+}
+
 :deep(.el-table tr:hover > td) {
   background-color: #f7fafc;
 }
 
-/* 按钮样式优化 */
-:deep(.el-button) {
-  border-radius: 6px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-button--primary) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
-}
-
-:deep(.el-button--primary:hover) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
-}
-
-:deep(.el-button--success) {
-  background: linear-gradient(135deg, #68d391 0%, #48bb78 100%);
-  border: none;
-  box-shadow: 0 2px 4px rgba(104, 211, 145, 0.3);
-}
-
-:deep(.el-button--success:hover) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(104, 211, 145, 0.4);
-}
-
-:deep(.el-button--warning) {
-  background: linear-gradient(135deg, #f6e05e 0%, #d69e2e 100%);
-  border: none;
-  box-shadow: 0 2px 4px rgba(246, 224, 94, 0.3);
-}
-
-:deep(.el-button--warning:hover) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(246, 224, 94, 0.4);
-}
-
-:deep(.el-button--danger) {
-  background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
-  border: none;
-  box-shadow: 0 2px 4px rgba(245, 101, 101, 0.3);
-}
-
-:deep(.el-button--danger:hover) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(245, 101, 101, 0.4);
-}
-
-/* 标签样式优化 */
-:deep(.el-tag) {
-  border-radius: 6px;
-  font-weight: 500;
-}
-
-:deep(.el-tag--success) {
-  background: linear-gradient(135deg, #68d391 0%, #48bb78 100%);
-  border: none;
-  color: white;
-}
-
-:deep(.el-tag--danger) {
-  background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);
-  border: none;
-  color: white;
-}
-
-:deep(.el-tag--warning) {
-  background: linear-gradient(135deg, #f6e05e 0%, #d69e2e 100%);
-  border: none;
-  color: white;
-}
-
-:deep(.el-tag--info) {
-  background: linear-gradient(135deg, #90cdf4 0%, #63b3ed 100%);
-  border: none;
-  color: white;
-}
-
-/* 输入框样式优化 */
-:deep(.el-input__wrapper) {
-  border-radius: 6px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  border: 1px solid #e2e8f0;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-input__wrapper:hover) {
-  border-color: #cbd5e0;
-}
-
-:deep(.el-input__wrapper.is-focus) {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-/* 对话框样式优化 */
-:deep(.el-dialog) {
-  border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-:deep(.el-dialog__header) {
-  background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
-  border-radius: 12px 12px 0 0;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-:deep(.el-dialog__title) {
-  font-weight: 600;
-  color: #2d3748;
-}
-
-/* 操作按钮组样式 */
-.operation-buttons {
+.detail-header {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
 }
 
-.operation-buttons .el-button {
-  flex-shrink: 0;
-  white-space: nowrap;
+.detail-header h3 {
+  margin: 0;
+  font-size: 20px;
+  color: #303133;
 }
+
+.detail-header__sub {
+  margin: 6px 0 0;
+  color: #606266;
+  font-size: 13px;
+}
+
+.detail-header__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.detail-body {
+  max-height: 68vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.detail-section {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.detail-section h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #303133;
+}
+
+.detail-section--highlight {
+  background: #f8fbff;
+  border: 1px solid #e5efff;
+  border-radius: 8px;
+  padding: 12px;
+  border-bottom: none;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  font-size: 13px;
+  color: #303133;
+}
+
+.detail-grid span {
+  display: inline-block;
+  width: 72px;
+  color: #909399;
+}
+
+.detail-text {
+  margin: 0;
+  line-height: 1.7;
+  color: #606266;
+  white-space: pre-wrap;
+}
+
+.detail-pre {
+  margin: 0;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #606266;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+}
+
+.skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 </style>
 

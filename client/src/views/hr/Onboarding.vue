@@ -33,7 +33,7 @@
 
           <!-- 操作按钮 -->
           <div class="button-group">
-            <el-button type="primary" @click="showOnboardingDialog = true">
+            <el-button type="primary" @click="openOnboardingDialog">
               <el-icon><Plus /></el-icon>
               新建入职申请
             </el-button>
@@ -206,16 +206,38 @@
       width="600px"
     >
       <el-form :model="onboardingForm" :rules="onboardingRules" ref="onboardingFormRef" label-width="100px">
-        <el-form-item label="员工" prop="user_id">
-          <el-select v-model="onboardingForm.user_id" placeholder="选择员工" style="width: 100%">
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          class="onboarding-talent-hint"
+          title="请从人才库中选择待入职候选人（已通过初筛的简历）"
+        />
+        <el-form-item label="人才" prop="talent_id">
+          <el-select
+            v-model="onboardingForm.talent_id"
+            placeholder="从人才库选择"
+            filterable
+            style="width: 100%"
+            @change="onTalentSelected"
+          >
             <el-option
-              v-for="user in allUsers"
-              :key="user.id"
-              :label="user.real_name || user.username"
-              :value="user.id"
+              v-for="talent in talentOptions"
+              :key="talent.id"
+              :label="formatTalentOption(talent)"
+              :value="talent.id"
             />
           </el-select>
         </el-form-item>
+        <div v-if="selectedTalentPreview" class="talent-preview">
+          <span>{{ selectedTalentPreview.phone || '无手机号' }}</span>
+          <span>{{ selectedTalentPreview.email || '无邮箱' }}</span>
+          <span>
+            {{ selectedTalentPreview.education || '-' }}
+            · {{ selectedTalentPreview.age != null ? `${selectedTalentPreview.age}岁` : '年龄未知' }}
+            · {{ selectedTalentPreview.experience_years != null ? `${selectedTalentPreview.experience_years}年经验` : '年限未知' }}
+          </span>
+        </div>
         <el-form-item label="岗位" prop="position_id">
           <el-select v-model="onboardingForm.position_id" placeholder="选择岗位" style="width: 100%">
             <el-option
@@ -242,6 +264,7 @@
             type="date"
             placeholder="选择入职日期"
             style="width: 100%"
+            value-format="YYYY-MM-DD"
           />
         </el-form-item>
         <el-form-item label="薪资">
@@ -321,12 +344,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { 
-  getOnboardingApplications, 
-  createOnboardingApplication,
+  getOnboardingApplications,
+  getTalents,
+  convertToOnboarding,
   getOffboardingApplications,
   createOffboardingApplication
 } from '@/api/hr'
@@ -349,6 +373,7 @@ const showOffboardingDialog = ref(false)
 
 // 基础数据
 const allUsers = ref([])
+const talentOptions = ref([])
 const allPositions = ref([])
 const allOrganizations = ref([])
 
@@ -380,13 +405,18 @@ const offboardingPagination = reactive({
 
 // 入职表单
 const onboardingForm = reactive({
-  user_id: '',
+  talent_id: '',
   position_id: '',
   org_id: '',
   start_date: '',
   salary: '',
   contract_type: '',
   notes: ''
+})
+
+const selectedTalentPreview = computed(() => {
+  if (!onboardingForm.talent_id) return null
+  return talentOptions.value.find((t) => t.id === onboardingForm.talent_id) || null
 })
 
 // 离职表单
@@ -399,7 +429,7 @@ const offboardingForm = reactive({
 
 // 表单验证规则
 const onboardingRules = {
-  user_id: [{ required: true, message: '请选择员工', trigger: 'change' }],
+  talent_id: [{ required: true, message: '请从人才库选择候选人', trigger: 'change' }],
   position_id: [{ required: true, message: '请选择岗位', trigger: 'change' }],
   org_id: [{ required: true, message: '请选择组织', trigger: 'change' }],
   start_date: [{ required: true, message: '请选择入职日期', trigger: 'change' }]
@@ -512,17 +542,62 @@ const resetOffboardingSearch = () => {
   loadOffboardingData()
 }
 
-// 保存入职申请
+const formatTalentOption = (talent) => {
+  const pos = talent.current_position || talent.job_intention || '职位未填'
+  return `${talent.name} · ${pos}${talent.ai_match_score != null ? ` · 匹配${Math.round(talent.ai_match_score * 100)}%` : ''}`
+}
+
+const loadTalentOptions = async () => {
+  const response = await getTalents({ page: 1, limit: 500, status: '1' })
+  talentOptions.value = response.data || []
+}
+
+const onTalentSelected = (talentId) => {
+  const talent = talentOptions.value.find((t) => t.id === talentId)
+  if (!talent) return
+  if (talent.expected_salary && !onboardingForm.salary) {
+    onboardingForm.salary = talent.expected_salary
+  }
+  if (!talent.email) {
+    ElMessage.warning('该人才缺少邮箱，提交入职前请在人才库中补全')
+  }
+}
+
+const openOnboardingDialog = async () => {
+  try {
+    await loadTalentOptions()
+    if (!talentOptions.value.length) {
+      ElMessage.warning('人才库暂无待处理候选人，请先在人才库导入或添加')
+    }
+    showOnboardingDialog.value = true
+  } catch (_) {
+    ElMessage.error('加载人才库失败')
+  }
+}
+
+// 保存入职申请（从人才库发起）
 const saveOnboardingApplication = async () => {
   try {
     await onboardingFormRef.value.validate()
-    await createOnboardingApplication(onboardingForm)
-    ElMessage.success('保存成功')
+    const talent = talentOptions.value.find((t) => t.id === onboardingForm.talent_id)
+    if (talent && !talent.email) {
+      ElMessage.error('请先在该人才信息中填写邮箱后再提交入职')
+      return
+    }
+    await convertToOnboarding(onboardingForm.talent_id, {
+      position_id: onboardingForm.position_id,
+      org_id: onboardingForm.org_id,
+      start_date: onboardingForm.start_date,
+      salary: onboardingForm.salary,
+      contract_type: onboardingForm.contract_type,
+      notes: onboardingForm.notes
+    })
     showOnboardingDialog.value = false
     resetOnboardingForm()
     loadOnboardingData()
+    await loadTalentOptions()
   } catch (error) {
-    ElMessage.error('保存失败')
+    // 错误信息由 request 拦截器展示
   }
 }
 
@@ -543,7 +618,7 @@ const saveOffboardingApplication = async () => {
 // 重置入职表单
 const resetOnboardingForm = () => {
   Object.assign(onboardingForm, {
-    user_id: '',
+    talent_id: '',
     position_id: '',
     org_id: '',
     start_date: '',
@@ -625,6 +700,19 @@ onMounted(() => {
 
 .tab-content {
   padding: 0;
+}
+
+.onboarding-talent-hint {
+  margin-bottom: 16px;
+}
+
+.talent-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: -8px 0 16px 100px;
+  font-size: 12px;
+  color: #909399;
 }
 
 .search-form {

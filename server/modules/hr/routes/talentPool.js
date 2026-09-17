@@ -6,6 +6,9 @@ const talentPoolController = require('../controllers/talentPoolController');
 // 获取人才库列表
 router.get('/talents', talentPoolController.getTalents);
 
+// 批量岗位匹配打分（须在 /talents/:id 之前注册）
+router.post('/talents/batch-ai-screen', talentPoolController.batchAiScreenTalents);
+
 // 获取人才详情
 router.get('/talents/:id', talentPoolController.getTalentById);
 
@@ -16,6 +19,12 @@ router.post('/talents', [
 
 // 文件上传并解析
 router.post('/talents/upload', talentPoolController.uploadAndParse);
+
+// AI 初筛（规则 + LLM）
+router.post('/talents/:id/ai-screen', talentPoolController.aiScreenTalent);
+
+// 重新解析已上传简历
+router.post('/talents/:id/reparse-resume', talentPoolController.reparseTalentResume);
 
 // 爬取招聘网站
 router.post('/talents/crawl', [
@@ -37,8 +46,8 @@ router.post('/talents/:id/link-recruitment', [
 
 // 转为入职申请
 router.post('/talents/:id/convert-to-onboarding', [
-  body('position_id').isInt().withMessage('岗位ID必须是数字'),
-  body('org_id').isInt().withMessage('组织ID必须是数字'),
+  body('position_id').isInt({ strict: false }).withMessage('岗位ID必须是数字'),
+  body('org_id').isInt({ strict: false }).withMessage('组织ID必须是数字'),
   body('start_date').notEmpty().withMessage('入职日期不能为空')
 ], talentPoolController.convertToOnboarding);
 

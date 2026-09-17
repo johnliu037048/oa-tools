@@ -1,6 +1,12 @@
+const path = require('path');
+try {
+  require('dotenv').config({ path: path.join(__dirname, '../.env') });
+} catch (_) {
+  // dotenv optional
+}
+
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const db = require('./core/database/db-connection');
 const { initHRDatabase } = require('./core/database/hr-tables');
 const { initFinanceDatabase } = require('./core/database/finance-tables');

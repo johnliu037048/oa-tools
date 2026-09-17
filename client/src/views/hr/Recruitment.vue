@@ -58,7 +58,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="created_at" label="发布时间" />
-        <el-table-column label="操作" width="280" show-overflow-tooltipfixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <div class="operation-buttons">
               <el-button size="small" @click="viewResumes(row)">查看简历</el-button>
@@ -87,9 +87,12 @@
     <el-dialog
       v-model="showCreateDialog"
       :title="editingPosition ? '编辑职位' : '发布职位'"
-      width="600px"
+      width="920px"
+      destroy-on-close
+      class="position-form-dialog"
     >
-      <el-form :model="positionForm" :rules="positionRules" ref="positionFormRef" label-width="100px">
+      <div class="dialog-scroll-body">
+      <el-form :model="positionForm" :rules="positionRules" ref="positionFormRef" label-width="110px">
         <el-form-item label="职位标题" prop="title">
           <el-input v-model="positionForm.title" placeholder="请输入职位标题" />
         </el-form-item>
@@ -123,12 +126,21 @@
             <el-option label="非常紧急" :value="3" />
           </el-select>
         </el-form-item>
+        <el-divider content-position="left">职位 JD</el-divider>
+        <el-form-item label="JD 摘要">
+          <el-input
+            v-model="positionForm.jd_summary"
+            type="textarea"
+            :rows="2"
+            placeholder="一句话概括岗位，供 AI 初筛使用"
+          />
+        </el-form-item>
         <el-form-item label="职位描述">
           <el-input
             v-model="positionForm.description"
             type="textarea"
             :rows="4"
-            placeholder="请输入职位描述"
+            placeholder="岗位职责、工作内容等"
           />
         </el-form-item>
         <el-form-item label="任职要求">
@@ -136,10 +148,59 @@
             v-model="positionForm.requirements"
             type="textarea"
             :rows="4"
-            placeholder="请输入任职要求"
+            placeholder="学历、技能、行业经验等硬性要求"
           />
         </el-form-item>
+
+        <el-divider content-position="left">筛选条件（规则预筛）</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="最低学历">
+              <el-select v-model="screeningForm.min_education" placeholder="不限" clearable style="width: 100%">
+                <el-option label="高中" value="高中" />
+                <el-option label="专科" value="专科" />
+                <el-option label="本科" value="本科" />
+                <el-option label="硕士" value="硕士" />
+                <el-option label="博士" value="博士" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="最低工作年限">
+              <el-input-number v-model="screeningForm.min_experience_years" :min="0" :max="40" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="期望薪资上限(K)">
+              <el-input-number v-model="screeningForm.max_expected_salary_k" :min="0" :max="500" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="招聘状态" v-if="editingPosition">
+              <el-select v-model="positionForm.status" style="width: 100%">
+                <el-option label="招聘中" :value="1" />
+                <el-option label="已暂停" :value="0" />
+                <el-option label="已结束" :value="2" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="必备技能">
+          <el-input
+            v-model="screeningForm.required_skills_text"
+            placeholder="多个技能用英文逗号分隔，如 Java,Spring,MySQL"
+          />
+        </el-form-item>
+        <el-form-item label="必须包含关键词">
+          <el-input v-model="screeningForm.keywords_must_text" placeholder="逗号分隔" />
+        </el-form-item>
+        <el-form-item label="排除关键词">
+          <el-input v-model="screeningForm.keywords_exclude_text" placeholder="逗号分隔" />
+        </el-form-item>
       </el-form>
+      </div>
       <template #footer>
         <el-button @click="showCreateDialog = false">取消</el-button>
         <el-button type="primary" @click="savePosition">保存</el-button>
@@ -181,7 +242,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { 
   getRecruitmentPositions, 
-  createRecruitmentPosition, 
+  createRecruitmentPosition,
+  updateRecruitmentPosition,
   deleteRecruitmentPosition,
   getResumes 
 } from '@/api/hr'
@@ -220,8 +282,51 @@ const positionForm = reactive({
   salary_range: '',
   urgent_level: 1,
   description: '',
-  requirements: ''
+  requirements: '',
+  jd_summary: '',
+  status: 1
 })
+
+const screeningForm = reactive({
+  min_education: '',
+  min_experience_years: null,
+  max_expected_salary_k: null,
+  required_skills_text: '',
+  keywords_must_text: '',
+  keywords_exclude_text: ''
+})
+
+const splitCsv = (text) =>
+  (text || '')
+    .split(/[,，]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+const buildScreeningRules = () => ({
+  min_education: screeningForm.min_education || undefined,
+  min_experience_years: screeningForm.min_experience_years ?? undefined,
+  max_expected_salary_k: screeningForm.max_expected_salary_k ?? undefined,
+  required_skills: splitCsv(screeningForm.required_skills_text),
+  keywords_must: splitCsv(screeningForm.keywords_must_text),
+  keywords_exclude: splitCsv(screeningForm.keywords_exclude_text)
+})
+
+const loadScreeningForm = (rulesRaw) => {
+  let rules = {}
+  if (rulesRaw) {
+    try {
+      rules = typeof rulesRaw === 'string' ? JSON.parse(rulesRaw) : rulesRaw
+    } catch (_) {
+      rules = {}
+    }
+  }
+  screeningForm.min_education = rules.min_education || ''
+  screeningForm.min_experience_years = rules.min_experience_years ?? null
+  screeningForm.max_expected_salary_k = rules.max_expected_salary_k ?? null
+  screeningForm.required_skills_text = (rules.required_skills || []).join(',')
+  screeningForm.keywords_must_text = (rules.keywords_must || []).join(',')
+  screeningForm.keywords_exclude_text = (rules.keywords_exclude || []).join(',')
+}
 
 // 表单验证规则
 const positionRules = {
@@ -287,13 +392,22 @@ const resetSearch = () => {
 const savePosition = async () => {
   try {
     await positionFormRef.value.validate()
-    await createRecruitmentPosition(positionForm)
-    ElMessage.success('保存成功')
+    const payload = {
+      ...positionForm,
+      screening_rules: buildScreeningRules()
+    }
+    if (editingPosition.value) {
+      await updateRecruitmentPosition(editingPosition.value.id, payload)
+    } else {
+      await createRecruitmentPosition(payload)
+    }
     showCreateDialog.value = false
     resetForm()
     loadData()
   } catch (error) {
-    ElMessage.error('保存失败')
+    if (error !== 'cancel') {
+      ElMessage.error('保存失败')
+    }
   }
 }
 
@@ -306,15 +420,29 @@ const resetForm = () => {
     salary_range: '',
     urgent_level: 1,
     description: '',
-    requirements: ''
+    requirements: '',
+    jd_summary: '',
+    status: 1
   })
+  loadScreeningForm(null)
   editingPosition.value = null
 }
 
 // 编辑职位
 const editPosition = (row) => {
   editingPosition.value = row
-  Object.assign(positionForm, row)
+  Object.assign(positionForm, {
+    title: row.title,
+    position_id: row.position_id,
+    org_id: row.org_id,
+    salary_range: row.salary_range,
+    urgent_level: row.urgent_level,
+    description: row.description,
+    requirements: row.requirements,
+    jd_summary: row.jd_summary || '',
+    status: row.status ?? 1
+  })
+  loadScreeningForm(row.screening_rules)
   showCreateDialog.value = true
 }
 
@@ -570,5 +698,11 @@ onMounted(() => {
 .operation-buttons .el-button {
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.dialog-scroll-body {
+  max-height: 65vh;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 </style>

@@ -59,7 +59,7 @@ request.interceptors.response.use(
           ElMessage.error(data.message || '请求失败')
       }
     } else {
-      ElMessage.error('网络错误，请检查网络连接')
+      ElMessage.error(error.message?.includes('timeout') ? '请求超时，请稍后重试' : '网络错误，请检查服务是否已启动')
     }
     
     return Promise.reject(error)

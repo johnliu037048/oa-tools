@@ -78,12 +78,18 @@ exports.createPosition = [
       return res.status(400).json({ message: errors.array()[0].msg });
     }
 
-    const { title, position_id, org_id, description, requirements, salary_range, urgent_level } = req.body;
+    const {
+      title, position_id, org_id, description, requirements, salary_range, urgent_level,
+      jd_summary, screening_rules
+    } = req.body;
+    const rulesJson = screening_rules
+      ? (typeof screening_rules === 'string' ? screening_rules : JSON.stringify(screening_rules))
+      : null;
 
     db.run(
-      `INSERT INTO recruitment_positions (title, position_id, org_id, description, requirements, salary_range, urgent_level) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [title, position_id, org_id, description, requirements, salary_range, urgent_level || 1],
+      `INSERT INTO recruitment_positions (title, position_id, org_id, description, requirements, salary_range, urgent_level, jd_summary, screening_rules) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, position_id, org_id, description, requirements, salary_range, urgent_level || 1, jd_summary || null, rulesJson],
       function(err) {
         if (err) {
           return res.status(500).json({ message: '创建失败' });
@@ -106,14 +112,21 @@ exports.updatePosition = [
     }
 
     const { id } = req.params;
-    const { title, position_id, org_id, description, requirements, salary_range, urgent_level, status } = req.body;
+    const {
+      title, position_id, org_id, description, requirements, salary_range, urgent_level, status,
+      jd_summary, screening_rules
+    } = req.body;
+    const rulesJson = screening_rules
+      ? (typeof screening_rules === 'string' ? screening_rules : JSON.stringify(screening_rules))
+      : null;
 
     db.run(
       `UPDATE recruitment_positions 
        SET title = ?, position_id = ?, org_id = ?, description = ?, requirements = ?, 
-           salary_range = ?, urgent_level = ?, status = ?, updated_at = CURRENT_TIMESTAMP 
+           salary_range = ?, urgent_level = ?, status = ?, jd_summary = ?, screening_rules = ?,
+           updated_at = CURRENT_TIMESTAMP 
        WHERE id = ?`,
-      [title, position_id, org_id, description, requirements, salary_range, urgent_level, status, id],
+      [title, position_id, org_id, description, requirements, salary_range, urgent_level, status, jd_summary || null, rulesJson, id],
       function(err) {
         if (err) {
           return res.status(500).json({ message: '更新失败' });

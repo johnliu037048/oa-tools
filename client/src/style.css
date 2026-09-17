@@ -179,33 +179,46 @@ html, body {
   background: var(--text-secondary);
 }
 
-/* Element Plus 样式覆盖 */
+/* Element Plus：实心按钮用主题色；link/text/plain 不套渐变 */
 .el-button {
-  border-radius: 6px !important;
-  font-weight: 500 !important;
-  transition: all 0.3s ease !important;
+  border-radius: 6px;
+  font-weight: 500;
 }
 
-.el-button--primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  border: none !important;
-  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3) !important;
+.el-button--primary:not(.is-link):not(.is-text):not(.is-plain) {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
 }
 
-.el-button--primary:hover {
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4) !important;
+.el-button--primary:not(.is-link):not(.is-text):not(.is-plain):hover {
+  background: var(--primary-light);
+  border-color: var(--primary-light);
+  color: #fff;
 }
 
-.el-button--danger {
-  background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%) !important;
-  border: none !important;
-  box-shadow: 0 2px 4px rgba(245, 101, 101, 0.3) !important;
+.el-button--primary.is-plain {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  background: #ecf5ff;
 }
 
-.el-button--danger:hover {
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 8px rgba(245, 101, 101, 0.4) !important;
+.el-button--primary.is-plain:hover {
+  color: #fff;
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.el-button--danger:not(.is-link):not(.is-text):not(.is-plain) {
+  background: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+.el-button.is-link,
+.el-button.is-text {
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .el-input__wrapper {
@@ -249,17 +262,6 @@ html, body {
   font-weight: 500 !important;
 }
 
-.el-tag--success {
-  background: linear-gradient(135deg, #68d391 0%, #48bb78 100%) !important;
-  border: none !important;
-  color: white !important;
-}
-
-.el-tag--danger {
-  background: linear-gradient(135deg, #fc8181 0%, #f56565 100%) !important;
-  border: none !important;
-  color: white !important;
-}
 
 .el-dialog {
   border-radius: 12px !important;
