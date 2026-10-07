@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [
     vue(),
     AutoImport({
-      resolvers: [ElementPlusResolver()],
+      resolvers: [ElementPlusResolver(), 'vue', 'vue-router', 'pinia'],
     }),
     Components({
       resolvers: [ElementPlusResolver()],
