@@ -32,22 +32,57 @@
           <template #header>
             <div class="card-header">
               <span>处理结果</span>
-              <el-button-group>
-                <el-button size="small" :disabled="!outputText" @click="copyOutput">复制</el-button>
-                <el-button size="small" :disabled="!outputText" @click="downloadOutput">下载</el-button>
-                <el-button size="small" @click="clearOutput">清空</el-button>
-              </el-button-group>
+              <div class="card-header-actions">
+                <el-button-group class="view-mode-group">
+                  <el-button
+                    size="small"
+                    :type="resultViewMode === 'text' ? 'primary' : 'default'"
+                    @click="resultViewMode = 'text'"
+                  >
+                    文本
+                  </el-button>
+                  <el-button
+                    size="small"
+                    :type="resultViewMode === 'tree' ? 'primary' : 'default'"
+                    :disabled="!outputTreeParseable"
+                    @click="resultViewMode = 'tree'"
+                  >
+                    树形
+                  </el-button>
+                </el-button-group>
+                <el-button-group v-if="resultViewMode === 'tree' && outputTreeParseable">
+                  <el-button size="small" @click="expandOutputTree">全部展开</el-button>
+                  <el-button size="small" @click="collapseOutputTree">全部收拢</el-button>
+                </el-button-group>
+                <el-button-group>
+                  <el-button size="small" :disabled="!outputText" @click="copyOutput">复制</el-button>
+                  <el-button size="small" :disabled="!outputText" @click="downloadOutput">下载</el-button>
+                  <el-button size="small" @click="clearOutput">清空</el-button>
+                </el-button-group>
+              </div>
             </div>
           </template>
           <el-input
+            v-if="resultViewMode === 'text'"
             v-model="outputText"
             type="textarea"
             :rows="20"
             placeholder="处理结果将显示在这里..."
             readonly
           />
+          <div v-else class="result-tree-container">
+            <el-tree
+              v-if="outputTreeParseable"
+              ref="outputTreeRef"
+              :data="outputTreeData"
+              node-key="path"
+              :expand-on-click-node="true"
+            />
+            <el-empty v-else description="当前结果不是有效 JSON，无法树形展示" :image-size="60" />
+          </div>
           <div v-if="outputSize" class="info-bar">
             <el-tag type="success">字符数：{{ outputSize }}</el-tag>
+            <el-tag v-if="resultViewMode === 'tree' && outputTreeParseable" type="info">可展开/收拢节点</el-tag>
             <el-tag v-if="inputSize && inputSize !== outputSize" type="warning">
               大小变化：{{ sizeChange }}
             </el-tag>
@@ -178,6 +213,8 @@ const successMessage = ref('')
 const isValidJson = ref(null)
 const activeTab = ref('format')
 const timestampResults = ref([])
+const resultViewMode = ref('text')
+const outputTreeRef = ref(null)
 
 const inputSize = computed(() => inputJson.value.length)
 const outputSize = computed(() => outputText.value.length)
@@ -206,12 +243,72 @@ const getJsonError = (error, source = inputJson.value) => {
   return `${error.message}（第 ${line} 行，第 ${column} 列）`
 }
 
+const buildTree = (value, path = '$', key = '$') => {
+  const isContainer = value !== null && typeof value === 'object'
+  const summary = Array.isArray(value)
+    ? `Array(${value.length})`
+    : isContainer ? 'Object' : JSON.stringify(value)
+  const node = { label: `${key}: ${summary}`, path }
+  if (isContainer) {
+    node.children = Object.entries(value).map(([childKey, childValue]) => {
+      const childPath = Array.isArray(value)
+        ? `${path}[${childKey}]`
+        : /^[A-Za-z_$][\w$]*$/.test(childKey)
+          ? `${path}.${childKey}`
+          : `${path}[${JSON.stringify(childKey)}]`
+      return buildTree(childValue, childPath, childKey)
+    })
+  }
+  return node
+}
+
+const parseOutputJson = () => {
+  if (!outputText.value.trim()) return null
+  const parsed = JSON.parse(outputText.value)
+  if (parsed === null || typeof parsed !== 'object') return null
+  return parsed
+}
+
+const outputTreeParseable = computed(() => {
+  try {
+    return parseOutputJson() !== null
+  } catch {
+    return false
+  }
+})
+
+const outputTreeData = computed(() => {
+  try {
+    const parsed = parseOutputJson()
+    if (parsed === null) return []
+    return [buildTree(parsed)]
+  } catch {
+    return []
+  }
+})
+
 const setResult = (result, message) => {
   outputText.value = typeof result === 'string' ? result : JSON.stringify(result, null, 2)
   errorMessage.value = ''
   successMessage.value = message
+  if (outputTreeParseable.value) {
+    resultViewMode.value = 'tree'
+  } else {
+    resultViewMode.value = 'text'
+  }
   ElMessage.success(message)
 }
+
+const setTreeExpanded = expanded => {
+  const nodes = outputTreeRef.value?.store?.nodesMap
+  if (!nodes) return
+  Object.values(nodes).forEach(node => {
+    node.expanded = expanded
+  })
+}
+
+const expandOutputTree = () => setTreeExpanded(true)
+const collapseOutputTree = () => setTreeExpanded(false)
 
 const handleError = (prefix, error, source = inputJson.value) => {
   successMessage.value = ''
@@ -391,25 +488,6 @@ const decodeUnicode = () => {
   setResult(result, 'Unicode 解码成功')
 }
 
-const buildTree = (value, path = '$', key = '$') => {
-  const isContainer = value !== null && typeof value === 'object'
-  const summary = Array.isArray(value)
-    ? `Array(${value.length})`
-    : isContainer ? 'Object' : JSON.stringify(value)
-  const node = { label: `${key}: ${summary}`, path }
-  if (isContainer) {
-    node.children = Object.entries(value).map(([childKey, childValue]) => {
-      const childPath = Array.isArray(value)
-        ? `${path}[${childKey}]`
-        : /^[A-Za-z_$][\w$]*$/.test(childKey)
-          ? `${path}.${childKey}`
-          : `${path}[${JSON.stringify(childKey)}]`
-      return buildTree(childValue, childPath, childKey)
-    })
-  }
-  return node
-}
-
 const treeData = computed(() => {
   try {
     return [buildTree(parseInput())]
@@ -573,6 +651,7 @@ const clearInput = () => {
 const clearOutput = () => {
   outputText.value = ''
   successMessage.value = ''
+  resultViewMode.value = 'text'
 }
 
 const copyOutput = async () => {
@@ -600,6 +679,32 @@ const downloadOutput = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.card-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.view-mode-group {
+  margin-right: 0;
+}
+
+.result-tree-container {
+  min-height: 420px;
+  max-height: 420px;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  background: #fafafa;
 }
 
 .operation-card,
