@@ -14,9 +14,11 @@ export default defineConfig({
         'vue-router',
         'pinia'
       ],
+      dts: 'src/auto-imports.d.ts',
       resolvers: [ElementPlusResolver()],
     }),
     Components({
+      dts: 'src/components.d.ts',
       resolvers: [ElementPlusResolver()],
     }),
   ],
